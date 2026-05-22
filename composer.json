@@ -1,6 +1,6 @@
 {
     "name": "maat/waffarha",
-    "description": "Waffarha API client and integration package for Maat application.",
+    "description": "integrate Waffarha with Maat",
     "type": "library",
     "license": "MIT",
     "require": {
