@@ -62,11 +62,14 @@ Accept: application/json
 
 ### Successful Response
 
+The Maat OAuth server uses a customised `client_credentials` grant that also issues a refresh token (default refresh TTL: **1 month**):
+
 ```json
 {
     "token_type": "Bearer",
     "expires_in": 31536000,
-    "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+    "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...",
+    "refresh_token": "def50200a8c4b2e7..."
 }
 ```
 
@@ -80,7 +83,29 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...
 Accept: application/json
 ```
 
-### Example with cURL
+### Refreshing the Access Token
+
+When the access token expires, exchange the saved `refresh_token` for a new pair without re-sending the client secret elsewhere. Hit the same `/oauth/token` endpoint with `grant_type=refresh_token`:
+
+```http
+POST {MAAT_URL}/waffarha/oauth/token
+Content-Type: application/json
+Accept: application/json
+
+{
+    "grant_type": "refresh_token",
+    "refresh_token": "def50200a8c4b2e7...",
+    "client_id": "{MAAT_CLIENT_ID}",
+    "client_secret": "{MAAT_CLIENT_SECRET}",
+    "scope": "*"
+}
+```
+
+The response shape is identical to the initial token request — a new `access_token` **and** a fresh `refresh_token` (the old refresh token is invalidated).
+
+### Examples with cURL
+
+Obtain initial token:
 
 ```bash
 curl -X POST "$MAAT_URL/waffarha/oauth/token" \
@@ -88,6 +113,21 @@ curl -X POST "$MAAT_URL/waffarha/oauth/token" \
   -H "Content-Type: application/json" \
   -d '{
     "grant_type": "client_credentials",
+    "client_id": "'"$MAAT_CLIENT_ID"'",
+    "client_secret": "'"$MAAT_CLIENT_SECRET"'",
+    "scope": "*"
+  }'
+```
+
+Refresh an existing token:
+
+```bash
+curl -X POST "$MAAT_URL/waffarha/oauth/token" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "grant_type": "refresh_token",
+    "refresh_token": "'"$MAAT_REFRESH_TOKEN"'",
     "client_id": "'"$MAAT_CLIENT_ID"'",
     "client_secret": "'"$MAAT_CLIENT_SECRET"'",
     "scope": "*"
