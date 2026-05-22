@@ -43,6 +43,57 @@ MAAT_API_TIMEOUT=30
 | `client_secret` | `MAAT_CLIENT_SECRET` | `null` | OAuth client secret issued by Maat. |
 | `timeout` | `MAAT_API_TIMEOUT` | `30` | HTTP request timeout (seconds). |
 
+## Authentication
+
+Maat exposes a Laravel Passport `client_credentials` endpoint for the Waffarha integration. Before calling any protected endpoint, obtain an access token from:
+
+```http
+POST {MAAT_URL}/waffarha/oauth/token
+Content-Type: application/json
+Accept: application/json
+
+{
+    "grant_type": "client_credentials",
+    "client_id": "{MAAT_CLIENT_ID}",
+    "client_secret": "{MAAT_CLIENT_SECRET}",
+    "scope": "*"
+}
+```
+
+### Successful Response
+
+```json
+{
+    "token_type": "Bearer",
+    "expires_in": 31536000,
+    "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+}
+```
+
+### Using the Access Token
+
+Send the returned `access_token` as a `Bearer` token on the `Authorization` header of every subsequent request:
+
+```http
+GET {MAAT_URL}/waffarha/units
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...
+Accept: application/json
+```
+
+### Example with cURL
+
+```bash
+curl -X POST "$MAAT_URL/waffarha/oauth/token" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "grant_type": "client_credentials",
+    "client_id": "'"$MAAT_CLIENT_ID"'",
+    "client_secret": "'"$MAAT_CLIENT_SECRET"'",
+    "scope": "*"
+  }'
+```
+
 ## Usage
 
 ### Using the Facade
