@@ -1,6 +1,6 @@
 # Waffarha Laravel Package
 
-A Laravel package that provides a lightweight HTTP client and facade for integrating with the [Waffarha](https://waffarha.com) third-party API.
+A Laravel package that provides a lightweight HTTP client and facade for integrating with the Maat API from any external application (e.g. Waffarha).
 
 ## Requirements
 
@@ -28,20 +28,20 @@ php artisan vendor:publish --tag=waffarha-config
 This creates `config/waffarha.php`. Add the following variables to your `.env`:
 
 ```dotenv
-WAFFARHA_API_BASE_URL=https://api.waffarha.com/v1
-WAFFARHA_CLIENT_ID=your-client-id
-WAFFARHA_CLIENT_SECRET=your-client-secret
-WAFFARHA_API_TIMEOUT=30
+MAAT_URL=https://your-maat-host.example.com
+MAAT_CLIENT_ID=your-client-id
+MAAT_CLIENT_SECRET=your-client-secret
+MAAT_API_TIMEOUT=30
 ```
 
 ### Configuration Options
 
 | Key | Env Variable | Default | Description |
 |-----|--------------|---------|-------------|
-| `base_url` | `WAFFARHA_API_BASE_URL` | `https://api.waffarha.com/v1` | Base URL for all API requests. |
-| `client_id` | `WAFFARHA_CLIENT_ID` | `null` | Waffarha API client identifier. |
-| `client_secret` | `WAFFARHA_CLIENT_SECRET` | `null` | Waffarha API client secret. |
-| `timeout` | `WAFFARHA_API_TIMEOUT` | `30` | HTTP request timeout (seconds). |
+| `base_url` | `MAAT_URL` | `null` | Base URL of the Maat API host. |
+| `client_id` | `MAAT_CLIENT_ID` | `null` | OAuth client identifier issued by Maat. |
+| `client_secret` | `MAAT_CLIENT_SECRET` | `null` | OAuth client secret issued by Maat. |
+| `timeout` | `MAAT_API_TIMEOUT` | `30` | HTTP request timeout (seconds). |
 
 ## Usage
 
