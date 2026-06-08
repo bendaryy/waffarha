@@ -1,0 +1,12 @@
+# Files kept in the repo but excluded from the distributed Composer package.
+# `export-ignore` paths are stripped from the dist archive Composer downloads on
+# `composer require`, so installs stay lean while these stay in version control.
+
+/.claude            export-ignore
+/.github            export-ignore
+/tests              export-ignore
+/.gitattributes     export-ignore
+/.gitignore         export-ignore
+/phpunit.xml        export-ignore
+/phpstan.neon       export-ignore
+/pint.json          export-ignore
