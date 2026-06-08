@@ -1,103 +1,50 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Maat\Waffarha;
 
-use Exception;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use Maat\Waffarha\Exceptions\WaffarhaRequestException;
+use Maat\Waffarha\Http\Transport;
+use Maat\Waffarha\Resources\Units;
 
+/**
+ * Entry point for the Waffarha API. Endpoints are grouped into resource classes
+ * reachable via accessors (e.g. {@see WaffarhaClient::units()}); a raw
+ * {@see WaffarhaClient::request()} escape hatch is also provided. All wire-level
+ * concerns (auth, retries, logging, error translation) live in {@see Transport}.
+ */
 class WaffarhaClient
 {
-    protected string $baseUrl;
+    private ?Units $units = null;
 
-    /**
-     * WaffarhaClient constructor.
-     */
     public function __construct(
-        string $baseUrl,
-        protected ?string $clientId = null,
-        protected ?string $clientSecret = null,
-        protected int $timeout = 30
-    ) {
-        $this->baseUrl = rtrim($baseUrl, '/');
-    }
+        private readonly Transport $transport,
+    ) {}
 
     /**
-     * Get default headers for all Waffarha API requests.
-     *
-     * @return array<string, string>
+     * The `units` API (list units, fetch a unit's details).
      */
-    protected function getHeaders(): array
+    public function units(): Units
     {
-        return [
-            'Accept' => 'application/json',
-            'Content-Type' => 'application/json',
-        ];
+        return $this->units ??= new Units($this->transport);
     }
 
     /**
-     * Send a raw HTTP request to Waffarha API.
+     * Send a raw HTTP request to any Waffarha endpoint and return the decoded
+     * JSON body. Use this for endpoints not covered by a resource method.
+     *
+     * Query parameters belong in $query (correctly URL-encoded for every verb);
+     * $data is sent as a JSON body for write verbs and ignored for GET/HEAD.
      *
      * @param  array<string, mixed>  $data
-     * @return array<string, mixed>|null
+     * @param  array<string, scalar|null>  $query
+     * @return array<string, mixed>
      *
-     * @throws Exception
+     * @throws WaffarhaRequestException
      */
-    public function request(string $method, string $endpoint, array $data = []): ?array
+    public function request(string $method, string $endpoint, array $data = [], array $query = []): array
     {
-        $url = $this->baseUrl.'/'.ltrim($endpoint, '/');
-        $headers = $this->getHeaders();
-
-        try {
-            $response = Http::withHeaders($headers)
-                ->timeout($this->timeout)
-                ->send($method, $url, [
-                    'json' => $data,
-                ]);
-
-            if ($response->failed()) {
-                Log::error('Waffarha API request failed', [
-                    'url' => $url,
-                    'method' => $method,
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                ]);
-
-                throw new Exception("Waffarha API call failed with status {$response->status()}: {$response->body()}");
-            }
-
-            return $response->json();
-        } catch (Exception $e) {
-            Log::error('Waffarha API connection error', [
-                'url' => $url,
-                'method' => $method,
-                'message' => $e->getMessage(),
-            ]);
-
-            throw $e;
-        }
-    }
-
-    /**
-     * Fetch all syndicated units from Waffarha API.
-     *
-     * @return array<string, mixed>|null
-     */
-    public function getUnits(array $queryParameters = []): ?array
-    {
-        $endpoint = 'units';
-        if (! empty($queryParameters)) {
-            $endpoint .= '?'.http_build_query($queryParameters);
-        }
-
-        return $this->request('GET', $endpoint);
-    }
-
-    /**
-     * Retrieve specific unit details from Waffarha API by UUID.
-     */
-    public function getUnit(string $uuid): ?array
-    {
-        return $this->request('GET', "units/{$uuid}");
+        return $this->transport->send($method, $endpoint, $data, $query);
     }
 }
