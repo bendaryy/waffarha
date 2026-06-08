@@ -1,5 +1,9 @@
 /vendor/
 .phpunit.result.cache
+.phpunit.cache
 .idea/
 .vscode/
 composer.lock
+
+# Local live-test credentials — never commit
+/tests/.env.live

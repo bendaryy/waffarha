@@ -7,10 +7,33 @@
         "php": "^8.2",
         "illuminate/support": "^10.0|^11.0|^12.0|^13.0"
     },
+    "require-dev": {
+        "laravel/pint": "^1.13",
+        "larastan/larastan": "^2.9|^3.0",
+        "orchestra/testbench": "^8.0|^9.0|^10.0",
+        "phpstan/phpstan": "^1.11|^2.0",
+        "phpunit/phpunit": "^10.5|^11.0"
+    },
     "autoload": {
         "psr-4": {
             "Maat\\Waffarha\\": "src/"
         }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Maat\\Waffarha\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit --testsuite=Fake",
+        "test:live": "phpunit --testsuite=Live",
+        "analyse": "phpstan analyse",
+        "format": "pint",
+        "lint": "pint --test"
+    },
+    "scripts-descriptions": {
+        "test": "Run the mocked (Http::fake) test suite. Safe offline; used by CI.",
+        "test:live": "Run integration tests against the real Maat API. Requires WAFFARHA_LIVE_* credentials; skips if absent."
     },
     "extra": {
         "laravel": {
@@ -21,6 +44,9 @@
                 "Waffarha": "Maat\\Waffarha\\Facades\\Waffarha"
             }
         }
+    },
+    "config": {
+        "sort-packages": true
     },
     "minimum-stability": "stable",
     "prefer-stable": true
