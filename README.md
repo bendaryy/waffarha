@@ -1,6 +1,8 @@
 # Waffarha Laravel Package
 
-A Laravel package that provides a lightweight HTTP client and facade for integrating with the Maat API from any external application (e.g. Waffarha).
+A Laravel package providing a typed HTTP client and facade for integrating with
+the Maat API from an external application (e.g. Waffarha). It handles OAuth token
+management automatically and returns typed DTOs instead of raw arrays.
 
 ## Requirements
 
@@ -9,203 +11,78 @@ A Laravel package that provides a lightweight HTTP client and facade for integra
 
 ## Installation
 
-Install via Composer:
-
 ```bash
 composer require maat/waffarha
 ```
 
-The package will be auto-discovered. Both the service provider and the `Waffarha` facade are registered automatically via Laravel package discovery.
+The service provider and `Waffarha` facade are auto-discovered.
 
 ## Configuration
 
-Publish the configuration file:
+Publish the config file:
 
 ```bash
 php artisan vendor:publish --tag=waffarha-config
 ```
 
-This creates `config/waffarha.php`. Add the following variables to your `.env`:
+Set these in your `.env`:
 
 ```dotenv
-MAAT_URL=https://your-maat-host.example.com
+MAAT_URL=https://your-maat-host.example.com/waffarha
 MAAT_CLIENT_ID=your-client-id
 MAAT_CLIENT_SECRET=your-client-secret
-MAAT_API_TIMEOUT=30
 ```
 
-### Configuration Options
+> `MAAT_URL` must include the API path prefix (e.g. `/waffarha`) — the SDK
+> appends endpoint paths directly.
 
-| Key | Env Variable | Default | Description |
-|-----|--------------|---------|-------------|
-| `base_url` | `MAAT_URL` | `null` | Base URL of the Maat API host. |
-| `client_id` | `MAAT_CLIENT_ID` | `null` | OAuth client identifier issued by Maat. |
-| `client_secret` | `MAAT_CLIENT_SECRET` | `null` | OAuth client secret issued by Maat. |
-| `timeout` | `MAAT_API_TIMEOUT` | `30` | HTTP request timeout (seconds). |
+See [docs/configuration.md](docs/configuration.md) for all options. Authentication
+(token fetch, caching, refresh) is fully automatic — see
+[docs/authentication.md](docs/authentication.md).
 
-## Authentication
+## Quick start
 
-Maat exposes a Laravel Passport `client_credentials` endpoint for the Waffarha integration. Before calling any protected endpoint, obtain an access token from:
+```php
+use Maat\Waffarha\Facades\Waffarha;
 
-```http
-POST {MAAT_URL}/waffarha/oauth/token
-Content-Type: application/json
-Accept: application/json
+// List units (returns a typed UnitCollection of Unit objects)
+$units = Waffarha::units()->list(['page' => 1, 'per_page' => 20]);
 
-{
-    "grant_type": "client_credentials",
-    "client_id": "{MAAT_CLIENT_ID}",
-    "client_secret": "{MAAT_CLIENT_SECRET}",
-    "scope": "*"
+foreach ($units as $unit) {
+    echo $unit->uuid, ' ', $unit->title, ' (', $unit->city, ')', PHP_EOL;
 }
+
+$total = $units->meta?->total;
+
+// Fetch one unit's full details (returns a typed UnitDetail)
+$detail = Waffarha::units()->get($unit->uuid);
+echo $detail->property->title, ' — ', $detail->property->currency;
 ```
 
-### Successful Response
+You can also resolve the client via dependency injection
+(`WaffarhaClient $waffarha`) or the container (`app('waffarha')`).
 
-The Maat OAuth server uses a customised `client_credentials` grant that also issues a refresh token (default refresh TTL: **1 month**):
+## Documentation
 
-```json
-{
-    "token_type": "Bearer",
-    "expires_in": 31536000,
-    "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...",
-    "refresh_token": "def50200a8c4b2e7..."
-}
-```
+| Doc | Contents |
+|-----|----------|
+| [Configuration](docs/configuration.md) | All config keys and env variables |
+| [Authentication](docs/authentication.md) | How tokens are obtained/cached/refreshed; token endpoint reference |
+| [`units()->list()`](docs/get-units.md) | List units — params, response, return type |
+| [`units()->get()`](docs/get-unit.md) | Unit details — response shape, full field reference |
+| [Custom requests](docs/custom-requests.md) | The generic `request()` escape hatch |
+| [Data objects](docs/data-objects.md) | Field reference for every returned DTO |
+| [Error handling](docs/error-handling.md) | Exception types and handling |
+| [Testing](docs/testing.md) | Running the mocked and live test suites |
 
-### Using the Access Token
-
-Send the returned `access_token` as a `Bearer` token on the `Authorization` header of every subsequent request:
-
-```http
-GET {MAAT_URL}/waffarha/units
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...
-Accept: application/json
-```
-
-### Refreshing the Access Token
-
-When the access token expires, exchange the saved `refresh_token` for a new pair without re-sending the client secret elsewhere. Hit the same `/oauth/token` endpoint with `grant_type=refresh_token`:
-
-```http
-POST {MAAT_URL}/waffarha/oauth/token
-Content-Type: application/json
-Accept: application/json
-
-{
-    "grant_type": "refresh_token",
-    "refresh_token": "def50200a8c4b2e7...",
-    "client_id": "{MAAT_CLIENT_ID}",
-    "client_secret": "{MAAT_CLIENT_SECRET}",
-    "scope": "*"
-}
-```
-
-The response shape is identical to the initial token request — a new `access_token` **and** a fresh `refresh_token` (the old refresh token is invalidated).
-
-### Examples with cURL
-
-Obtain initial token:
+## Development
 
 ```bash
-curl -X POST "$MAAT_URL/waffarha/oauth/token" \
-  -H "Accept: application/json" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "grant_type": "client_credentials",
-    "client_id": "'"$MAAT_CLIENT_ID"'",
-    "client_secret": "'"$MAAT_CLIENT_SECRET"'",
-    "scope": "*"
-  }'
+composer install
+composer test       # mocked suite (no network) — run by CI
+composer analyse    # PHPStan (level max)
+composer format     # Laravel Pint
 ```
 
-Refresh an existing token:
+See [docs/testing.md](docs/testing.md) for the live integration suite.
 
-```bash
-curl -X POST "$MAAT_URL/waffarha/oauth/token" \
-  -H "Accept: application/json" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "grant_type": "refresh_token",
-    "refresh_token": "'"$MAAT_REFRESH_TOKEN"'",
-    "client_id": "'"$MAAT_CLIENT_ID"'",
-    "client_secret": "'"$MAAT_CLIENT_SECRET"'",
-    "scope": "*"
-  }'
-```
-
-## Usage
-
-### Using the Facade
-
-```php
-use Maat\Waffarha\Facades\Waffarha;
-
-$units = Waffarha::getUnits(['page' => 1, 'per_page' => 20]);
-
-$unit = Waffarha::getUnit('unit-uuid-here');
-```
-
-### Using Dependency Injection
-
-```php
-use Maat\Waffarha\WaffarhaClient;
-
-class SyncUnitsJob
-{
-    public function __construct(protected WaffarhaClient $waffarha) {}
-
-    public function handle(): void
-    {
-        $units = $this->waffarha->getUnits();
-
-        // ...
-    }
-}
-```
-
-### Using the Service Container
-
-```php
-$client = app('waffarha');
-$units = $client->getUnits();
-```
-
-### Custom Requests
-
-For endpoints not covered by helper methods, use the generic `request()` method:
-
-```php
-use Maat\Waffarha\Facades\Waffarha;
-
-$response = Waffarha::request('GET', 'units', [
-    'page' => 1,
-    'per_page' => 20,
-]);
-```
-
-## Available Methods
-
-| Method | Description |
-|--------|-------------|
-| `getUnits(array $queryParameters = [])` | Fetch a paginated list of syndicated units. |
-| `getUnit(string $uuid)` | Retrieve a specific unit by UUID. |
-| `request(string $method, string $endpoint, array $data = [])` | Send a raw HTTP request to any endpoint. |
-
-## Error Handling
-
-All API failures throw an `Exception` with a descriptive message and are logged automatically via Laravel's logger:
-
-```php
-use Maat\Waffarha\Facades\Waffarha;
-
-try {
-    $units = Waffarha::getUnits();
-} catch (\Exception $e) {
-    report($e);
-}
-```
-
-## License
-
-The MIT License (MIT). See [LICENSE](LICENSE) for details.
