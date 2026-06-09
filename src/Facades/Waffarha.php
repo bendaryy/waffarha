@@ -10,6 +10,11 @@ use Maat\Waffarha\WaffarhaClient;
  *
  * @method static array|null getUnits(array $queryParameters = [])
  * @method static array|null getUnit(string $uuid)
+ * @method static array|null listBookings(array $queryParameters = [])
+ * @method static array|null createBooking(array $payload)
+ * @method static array|null getBooking(string $uuid)
+ * @method static array|null updateBooking(string $uuid, array $payload)
+ * @method static array|null cancelBooking(string $uuid, ?string $reason = null)
  * @method static array|null request(string $method, string $endpoint, array $data = [])
  */
 class Waffarha extends Facade

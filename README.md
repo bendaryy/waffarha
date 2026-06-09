@@ -36,12 +36,12 @@ MAAT_API_TIMEOUT=30
 
 ### Configuration Options
 
-| Key | Env Variable | Default | Description |
-|-----|--------------|---------|-------------|
-| `base_url` | `MAAT_URL` | `null` | Base URL of the Maat API host. |
-| `client_id` | `MAAT_CLIENT_ID` | `null` | OAuth client identifier issued by Maat. |
-| `client_secret` | `MAAT_CLIENT_SECRET` | `null` | OAuth client secret issued by Maat. |
-| `timeout` | `MAAT_API_TIMEOUT` | `30` | HTTP request timeout (seconds). |
+| Key             | Env Variable         | Default | Description                             |
+| --------------- | -------------------- | ------- | --------------------------------------- |
+| `base_url`      | `MAAT_URL`           | `null`  | Base URL of the Maat API host.          |
+| `client_id`     | `MAAT_CLIENT_ID`     | `null`  | OAuth client identifier issued by Maat. |
+| `client_secret` | `MAAT_CLIENT_SECRET` | `null`  | OAuth client secret issued by Maat.     |
+| `timeout`       | `MAAT_API_TIMEOUT`   | `30`    | HTTP request timeout (seconds).         |
 
 ## Authentication
 
@@ -66,10 +66,10 @@ The Maat OAuth server uses a customised `client_credentials` grant that also iss
 
 ```json
 {
-    "token_type": "Bearer",
-    "expires_in": 31536000,
-    "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...",
-    "refresh_token": "def50200a8c4b2e7..."
+  "token_type": "Bearer",
+  "expires_in": 31536000,
+  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...",
+  "refresh_token": "def50200a8c4b2e7..."
 }
 ```
 
@@ -186,11 +186,99 @@ $response = Waffarha::request('GET', 'units', [
 
 ## Available Methods
 
-| Method | Description |
-|--------|-------------|
-| `getUnits(array $queryParameters = [])` | Fetch a paginated list of syndicated units. |
-| `getUnit(string $uuid)` | Retrieve a specific unit by UUID. |
-| `request(string $method, string $endpoint, array $data = [])` | Send a raw HTTP request to any endpoint. |
+| Method                                                        | Description                                                                              |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `getUnits(array $queryParameters = [])`                       | Fetch a paginated list of syndicated units.                                              |
+| `getUnit(string $uuid)`                                       | Retrieve a specific unit by UUID.                                                        |
+| `listBookings(array $queryParameters = [])`                   | List Waffarha bookings (filter by `status`, `check_in_from`, `check_in_to`).             |
+| `createBooking(array $payload)`                               | Create a Waffarha booking on a Maat unit.                                                |
+| `getBooking(string $uuid)`                                    | Retrieve a previously created Waffarha booking by Maat UUID.                             |
+| `updateBooking(string $uuid, array $payload)`                 | Update a Waffarha booking (status, dates, guests, total, guest details).                 |
+| `cancelBooking(string $uuid, ?string $reason = null)`         | Cancel a Waffarha booking.                                                               |
+| `request(string $method, string $endpoint, array $data = [])` | Send a raw HTTP request to any endpoint.                                                 |
+
+## Bookings
+
+Waffarha pushes reservations against Maat units through the booking endpoints. Identify the source with `'provider' => 'waffarha'` in every create call.
+
+### Create a booking
+
+```php
+use Maat\Waffarha\Facades\Waffarha;
+
+$response = Waffarha::createBooking([
+    'provider' => 'waffarha',
+    'provider_booking_id' => 'WAF-123456',
+    'property_uuid' => 'b6d0b8d2-9c5e-4f1a-9c2a-7a4b8e3f1a0d',
+    'check_in' => '2026-08-12',
+    'check_out' => '2026-08-15',
+    'guests_count' => 2,
+    'total_amount' => 4500.00,
+    'currency' => 'EGP',
+    'notes' => 'Late arrival around 11 PM.',
+    'guest' => [
+        'name' => 'Ahmed Mohamed',
+        'email' => 'ahmed@example.com',
+        'phone' => '+201234567890',
+        'nationality' => 'Egyptian',
+        'passport_number' => 'A12345678',
+        'date_of_birth' => '1990-05-10',
+    ],
+]);
+```
+
+### Update / cancel
+
+```php
+Waffarha::updateBooking($uuid, [
+    'status' => 'CheckIn',
+    'notes' => 'Guest already checked in.',
+]);
+
+Waffarha::cancelBooking($uuid, 'Guest no-show');
+```
+
+### Webhooks (outbound — Maat → Waffarha)
+
+If `webhook_url` (and optional `webhook_secret`) is configured on the Waffarha provider row, Maat will queue a `ProviderBookingWebhookJob` whenever a Waffarha booking is created, updated, or cancelled. The payload is sent as JSON with the headers:
+
+| Header             | Description                                                                     |
+| ------------------ | ------------------------------------------------------------------------------- |
+| `x-webhook-secret` | The provider's stored shared secret. Verify before processing.                  |
+| `x-webhook-event`  | One of `reservation.confirmed`, `reservation.updated`, `reservation.cancelled`. |
+
+Payload shape:
+
+```json
+{
+  "event": "reservation.confirmed",
+  "timestamp": "2026-08-10T19:42:13+02:00",
+  "reservation": {
+    "id": "b6d0b8d2-9c5e-4f1a-9c2a-7a4b8e3f1a0d",
+    "provider_booking_id": "WAF-123456",
+    "property_id": "9b2a...-uuid",
+    "property_title": "Beachfront Villa",
+    "check_in": "2026-08-12",
+    "check_out": "2026-08-15",
+    "number_of_guests": 2,
+    "total_amount": 4500.0,
+    "currency": "EGP",
+    "status": "Confirmed",
+    "cancellation_reason": null,
+    "notes": "Late arrival around 11 PM.",
+    "guest": {
+      "name": "Ahmed Mohamed",
+      "email": "ahmed@example.com",
+      "phone": "+201234567890",
+      "nationality": "Egyptian",
+      "passport_number": "A12345678",
+      "date_of_birth": "1990-05-10"
+    },
+    "created_at": "2026-08-10T19:42:10+02:00",
+    "updated_at": "2026-08-10T19:42:10+02:00"
+  }
+}
+```
 
 ## Error Handling
 
