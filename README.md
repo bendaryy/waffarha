@@ -7,7 +7,7 @@ management automatically and returns typed DTOs instead of raw arrays.
 ## Requirements
 
 - PHP `^8.2`
-- Laravel `10.x` / `11.x` / `12.x` / `13.x`
+- Laravel `11.x` / `12.x` / `13.x`
 
 ## Installation
 
