@@ -8,6 +8,7 @@ use Illuminate\Support\ServiceProvider;
 use Maat\Waffarha\Auth\TokenManager;
 use Maat\Waffarha\Exceptions\WaffarhaConfigurationException;
 use Maat\Waffarha\Http\Transport;
+use Maat\Waffarha\Resources\Bookings;
 use Maat\Waffarha\Resources\Units;
 
 class WaffarhaServiceProvider extends ServiceProvider
@@ -47,6 +48,10 @@ class WaffarhaServiceProvider extends ServiceProvider
         // Allow resources to be injected directly (e.g. app(Units::class)).
         $this->app->bind(Units::class, function ($app): Units {
             return new Units($app->make(Transport::class));
+        });
+
+        $this->app->bind(Bookings::class, function ($app): Bookings {
+            return new Bookings($app->make(Transport::class));
         });
 
         // Resolve the facade accessor ('waffarha') and typehinted dependency

@@ -27,7 +27,7 @@
     "scripts": {
         "test": "phpunit --testsuite=Fake",
         "test:live": "phpunit --testsuite=Live",
-        "analyse": "phpstan analyse",
+        "analyse": "phpstan analyse --memory-limit=1G",
         "format": "pint",
         "lint": "pint --test"
     },

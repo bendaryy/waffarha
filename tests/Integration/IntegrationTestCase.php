@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Maat\Waffarha\Tests\Integration;
 
+use Illuminate\Foundation\Application;
 use Maat\Waffarha\Tests\TestCase;
 
 /**
@@ -22,7 +23,7 @@ use Maat\Waffarha\Tests\TestCase;
 abstract class IntegrationTestCase extends TestCase
 {
     /**
-     * @param  \Illuminate\Foundation\Application  $app
+     * @param  Application  $app
      */
     protected function defineEnvironment($app): void
     {

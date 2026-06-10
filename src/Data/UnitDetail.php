@@ -55,7 +55,6 @@ final readonly class UnitDetail
             ? $data['propetydetails']
             : [];
         /** @var array<string, mixed> $property */
-
         $guest = isset($data['guest_cancellation_policy']) && is_array($data['guest_cancellation_policy'])
             ? CancellationPolicy::fromArray($data['guest_cancellation_policy'])
             : null;
@@ -103,7 +102,6 @@ final readonly class UnitDetail
      *
      * @template T
      *
-     * @param  mixed  $value
      * @param  callable(array<string, mixed>): T  $factory
      * @return list<T>
      */

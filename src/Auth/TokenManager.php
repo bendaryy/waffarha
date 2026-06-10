@@ -9,7 +9,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Maat\Waffarha\Data\TokenResponse;
 use Maat\Waffarha\Exceptions\WaffarhaAuthenticationException;
-use Throwable;
+use Maat\Waffarha\WaffarhaClient;
 
 /**
  * Owns the OAuth token lifecycle for the Waffarha integration.
@@ -21,7 +21,7 @@ use Throwable;
  *    a fresh `client_credentials` grant when the refresh token is gone/rejected.
  *
  * The token endpoint is hit WITHOUT an Authorization header (it is the auth
- * bootstrap), so this class never depends on {@see \Maat\Waffarha\WaffarhaClient}.
+ * bootstrap), so this class never depends on {@see WaffarhaClient}.
  */
 class TokenManager
 {

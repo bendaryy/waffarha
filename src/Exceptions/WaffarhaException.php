@@ -12,6 +12,4 @@ use Exception;
  * Catch this type to handle any SDK failure generically, or catch one of the
  * specific subclasses to react to a particular failure mode.
  */
-class WaffarhaException extends Exception
-{
-}
+class WaffarhaException extends Exception {}

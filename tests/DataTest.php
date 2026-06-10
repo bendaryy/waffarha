@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Maat\Waffarha\Tests;
 
+use Maat\Waffarha\Data\Booking;
+use Maat\Waffarha\Data\BookingCollection;
 use Maat\Waffarha\Data\TokenResponse;
 use Maat\Waffarha\Data\Unit;
 use Maat\Waffarha\Data\UnitCollection;
@@ -63,6 +65,75 @@ class DataTest extends BaseTestCase
 
         $this->assertCount(0, $collection);
         $this->assertNull($collection->meta);
+    }
+
+    public function test_booking_maps_create_payload_keys_and_keeps_raw_attributes(): void
+    {
+        $booking = Booking::fromArray([
+            'uuid' => 'b-1',
+            'provider' => 'waffarha',
+            'provider_booking_id' => 'WAF-1',
+            'property_uuid' => 'prop-9',
+            'check_in' => '2026-08-12',
+            'check_out' => '2026-08-15',
+            'guests_count' => 2,
+            'total_amount' => '4500.00',
+            'currency' => 'EGP',
+            'notes' => 'Late arrival.',
+            'guest' => ['name' => 'Ahmed', 'passport_number' => 'A12345678'],
+        ]);
+
+        $this->assertSame('b-1', $booking->uuid);
+        $this->assertSame('waffarha', $booking->provider);
+        $this->assertSame('WAF-1', $booking->providerBookingId);
+        $this->assertSame('prop-9', $booking->propertyUuid);
+        $this->assertSame(2, $booking->guestsCount);
+        $this->assertSame('4500.00', $booking->totalAmount);
+        $this->assertSame('Ahmed', $booking->guest?->name);
+        $this->assertSame('A12345678', $booking->guest?->passportNumber);
+        // Non-promoted fields survive in the raw bag.
+        $this->assertSame('Late arrival.', $booking->get('notes'));
+        $this->assertNull($booking->get('missing'));
+    }
+
+    public function test_booking_falls_back_to_webhook_keys(): void
+    {
+        $booking = Booking::fromArray([
+            'id' => 'b-2',
+            'property_id' => 'prop-7',
+            'number_of_guests' => 4,
+            'status' => 'Confirmed',
+        ]);
+
+        // id → uuid, property_id → propertyUuid, number_of_guests → guestsCount.
+        $this->assertSame('b-2', $booking->uuid);
+        $this->assertSame('prop-7', $booking->propertyUuid);
+        $this->assertSame(4, $booking->guestsCount);
+        $this->assertSame('Confirmed', $booking->status);
+        $this->assertNull($booking->guest);
+    }
+
+    public function test_booking_collection_reads_bookings_and_pagination(): void
+    {
+        $collection = BookingCollection::fromArray([
+            'bookings' => [['uuid' => 'b-1', 'status' => 'Confirmed'], ['id' => 'b-2']],
+            'pagination' => ['total' => 2, 'current_page' => 1],
+        ]);
+
+        $this->assertCount(2, $collection);
+        $this->assertSame('b-1', $collection->items[0]->uuid);
+        $this->assertSame('b-2', $collection->items[1]->uuid);
+        $this->assertSame(2, $collection->meta?->total);
+    }
+
+    public function test_booking_collection_tolerates_a_bare_list_and_missing_wrapper(): void
+    {
+        $fromList = BookingCollection::fromArray([['uuid' => 'b-1'], ['uuid' => 'b-2']]);
+        $this->assertCount(2, $fromList);
+        $this->assertNull($fromList->meta);
+
+        $empty = BookingCollection::fromArray(['ResponseCode' => '200', 'Result' => 'true']);
+        $this->assertCount(0, $empty);
     }
 
     public function test_token_response_defaults_token_type_and_nullable_refresh(): void

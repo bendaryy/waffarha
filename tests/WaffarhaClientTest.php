@@ -5,10 +5,15 @@ declare(strict_types=1);
 namespace Maat\Waffarha\Tests;
 
 use Illuminate\Support\Facades\Http;
+use Maat\Waffarha\Auth\TokenManager;
+use Maat\Waffarha\Data\Booking;
+use Maat\Waffarha\Data\BookingCollection;
 use Maat\Waffarha\Data\UnitCollection;
 use Maat\Waffarha\Data\UnitDetail;
 use Maat\Waffarha\Exceptions\WaffarhaConfigurationException;
 use Maat\Waffarha\Exceptions\WaffarhaRequestException;
+use Maat\Waffarha\Http\Transport;
+use Maat\Waffarha\Resources\Bookings;
 use Maat\Waffarha\Resources\Units;
 use Maat\Waffarha\WaffarhaClient;
 
@@ -20,6 +25,14 @@ class WaffarhaClientTest extends TestCase
 
         $this->assertInstanceOf(Units::class, $client->units());
         $this->assertSame($client->units(), $client->units(), 'units() should return the same instance.');
+    }
+
+    public function test_bookings_accessor_returns_a_memoized_resource(): void
+    {
+        $client = $this->app->make(WaffarhaClient::class);
+
+        $this->assertInstanceOf(Bookings::class, $client->bookings());
+        $this->assertSame($client->bookings(), $client->bookings(), 'bookings() should return the same instance.');
     }
 
     private function fakeToken(): void
@@ -217,12 +230,167 @@ class WaffarhaClientTest extends TestCase
         }
     }
 
+    public function test_list_bookings_returns_a_typed_collection(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/bookings*' => Http::response([
+                'ResponseCode' => '200',
+                'Result' => 'true',
+                'ResponseMsg' => 'Waffarha bookings retrieved successfully.',
+                'bookings' => [
+                    [
+                        'uuid' => 'b-1',
+                        'provider_booking_id' => 'WAF-1',
+                        'status' => 'Confirmed',
+                        'total_amount' => '4500.00',
+                        'currency' => 'EGP',
+                        'guests_count' => 2,
+                        'guest' => ['name' => 'Ahmed Mohamed', 'email' => 'ahmed@example.com'],
+                    ],
+                    ['uuid' => 'b-2', 'status' => 'Pending'],
+                ],
+                'pagination' => ['current_page' => 1, 'last_page' => 1, 'per_page' => 20, 'total' => 2],
+            ]),
+        ]);
+
+        $bookings = $this->app->make(WaffarhaClient::class)->bookings()->list(['per_page' => 20]);
+
+        $this->assertInstanceOf(BookingCollection::class, $bookings);
+        $this->assertCount(2, $bookings);
+        $this->assertSame('b-1', $bookings->items[0]->uuid);
+        $this->assertSame('Confirmed', $bookings->items[0]->status);
+        $this->assertSame('4500.00', $bookings->items[0]->totalAmount);
+        $this->assertSame(2, $bookings->items[0]->guestsCount);
+        $this->assertSame('Ahmed Mohamed', $bookings->items[0]->guest?->name);
+        $this->assertSame(2, $bookings->meta?->total);
+    }
+
+    public function test_list_bookings_sends_filters_as_query_string_with_bearer_token(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/bookings*' => Http::response(['bookings' => []]),
+        ]);
+
+        $this->app->make(WaffarhaClient::class)->bookings()->list([
+            'status' => 'Confirmed',
+            'check_in_from' => '2026-08-01',
+            'check_in_to' => '2026-08-31',
+        ]);
+
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), '/bookings')) {
+                return false;
+            }
+
+            return $request->method() === 'GET'
+                && str_contains($request->url(), 'status=Confirmed')
+                && str_contains($request->url(), 'check_in_from=2026-08-01')
+                && str_contains($request->url(), 'check_in_to=2026-08-31')
+                && $request->body() === ''
+                && $request->hasHeader('Authorization', 'Bearer access-1');
+        });
+    }
+
+    public function test_get_booking_returns_a_typed_booking_from_the_uuid_path(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/bookings/b-1' => Http::response([
+                'id' => 'b-1',
+                'property_id' => 'p-9',
+                'property_title' => 'Beachfront Villa',
+                'number_of_guests' => 3,
+                'status' => 'Confirmed',
+                'guest' => ['name' => 'Sara', 'phone' => '+201234567890'],
+            ]),
+        ]);
+
+        $booking = $this->app->make(WaffarhaClient::class)->bookings()->get('b-1');
+
+        $this->assertInstanceOf(Booking::class, $booking);
+        // id → uuid, property_id → propertyUuid, number_of_guests → guestsCount.
+        $this->assertSame('b-1', $booking->uuid);
+        $this->assertSame('p-9', $booking->propertyUuid);
+        $this->assertSame('Beachfront Villa', $booking->propertyTitle);
+        $this->assertSame(3, $booking->guestsCount);
+        $this->assertSame('Sara', $booking->guest?->name);
+    }
+
+    public function test_create_booking_sends_payload_as_json_body_and_returns_a_booking(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/bookings' => Http::response([
+                'uuid' => 'b-new', 'provider_booking_id' => 'WAF-123456', 'status' => 'Pending',
+            ]),
+        ]);
+
+        $booking = $this->app->make(WaffarhaClient::class)->bookings()->create([
+            'provider' => 'waffarha',
+            'provider_booking_id' => 'WAF-123456',
+            'property_uuid' => 'b6d0b8d2',
+            'check_in' => '2026-08-12',
+            'check_out' => '2026-08-15',
+            'guests_count' => 2,
+            'total_amount' => 4500.00,
+        ]);
+
+        $this->assertInstanceOf(Booking::class, $booking);
+        $this->assertSame('b-new', $booking->uuid);
+        $this->assertSame('WAF-123456', $booking->providerBookingId);
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), '/bookings')
+                && $request->method() === 'POST'
+                && $request['provider'] === 'waffarha'
+                && $request['provider_booking_id'] === 'WAF-123456'
+                && $request->hasHeader('Authorization', 'Bearer access-1');
+        });
+    }
+
+    public function test_cancel_booking_sends_reason_in_the_body(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/bookings/b-1' => Http::response(['uuid' => 'b-1', 'status' => 'Cancelled']),
+        ]);
+
+        $booking = $this->app->make(WaffarhaClient::class)->bookings()->cancel('b-1', 'Guest no-show');
+
+        $this->assertInstanceOf(Booking::class, $booking);
+        $this->assertSame('Cancelled', $booking->status);
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), '/bookings/b-1')
+                && $request->method() === 'DELETE'
+                && $request['reason'] === 'Guest no-show';
+        });
+    }
+
+    public function test_a_failed_bookings_response_throws_a_typed_request_exception(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/bookings*' => Http::response(['message' => 'boom'], 500),
+        ]);
+
+        try {
+            $this->app->make(WaffarhaClient::class)->bookings()->list();
+            $this->fail('Expected WaffarhaRequestException was not thrown.');
+        } catch (WaffarhaRequestException $e) {
+            $this->assertSame(500, $e->status);
+            $this->assertStringContainsString('boom', (string) $e->body);
+        }
+    }
+
     public function test_missing_base_url_throws_a_configuration_exception(): void
     {
         config(['waffarha.base_url' => null]);
         $this->app->forgetInstance(WaffarhaClient::class);
-        $this->app->forgetInstance(\Maat\Waffarha\Http\Transport::class);
-        $this->app->forgetInstance(\Maat\Waffarha\Auth\TokenManager::class);
+        $this->app->forgetInstance(Transport::class);
+        $this->app->forgetInstance(TokenManager::class);
 
         $this->expectException(WaffarhaConfigurationException::class);
         $this->app->make(WaffarhaClient::class);

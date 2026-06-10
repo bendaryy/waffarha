@@ -197,3 +197,64 @@ Used for both the guest policy and each host policy. The host-only fields are
 |----------|------|-----------|
 | `id` | `?int` | `id` |
 | `description` | `?string` | `description` |
+
+## Returned by `bookings()->*`
+
+> **Provisional.** The bookings response shape is not yet confirmed against the
+> live API. The DTOs below are inferred from the documented create-request
+> payload and the outbound booking [webhook](webhooks.md) (which use slightly
+> different key names), so each field is read from every observed candidate key.
+> The full payload is always retained in `$attributes`. Run `composer test:live`
+> to capture a real response and tighten the mapping.
+
+### BookingCollection
+
+Iterable (`foreach`) and countable (`count()`). Returned by `bookings()->list()`.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `items` | `list<Booking>` | The bookings on this page. |
+| `meta` | `?PaginationMeta` | Pagination metadata, or `null` if absent. |
+
+Rows are resolved from the first of `bookings`, `data`, or a bare top-level list.
+Methods: `count()`, `getIterator()`, `toArray(): array` (raw rows).
+
+### Booking
+
+| Property | Type | Source key(s) |
+|----------|------|---------------|
+| `uuid` | `?string` | `uuid` (falls back to `id`) |
+| `providerBookingId` | `?string` | `provider_booking_id` |
+| `provider` | `?string` | `provider` |
+| `propertyUuid` | `?string` | `property_uuid` (falls back to `property_id`) |
+| `propertyTitle` | `?string` | `property_title` |
+| `checkIn` | `?string` | `check_in` |
+| `checkOut` | `?string` | `check_out` |
+| `guestsCount` | `?int` | `guests_count` (falls back to `number_of_guests`) |
+| `totalAmount` | `?string` | `total_amount` |
+| `currency` | `?string` | `currency` |
+| `status` | `?string` | `status` |
+| `cancellationReason` | `?string` | `cancellation_reason` |
+| `notes` | `?string` | `notes` |
+| `guest` | `?Guest` | `guest` |
+| `createdAt` | `?string` | `created_at` |
+| `updatedAt` | `?string` | `updated_at` |
+| `attributes` | `array<string,mixed>` | full decoded payload |
+
+Methods: `get(string $key, mixed $default = null)`, `toArray()`.
+
+### Guest
+
+Nested under `Booking::$guest`.
+
+| Property | Type | Source key |
+|----------|------|-----------|
+| `name` | `?string` | `name` |
+| `email` | `?string` | `email` |
+| `phone` | `?string` | `phone` |
+| `nationality` | `?string` | `nationality` |
+| `passportNumber` | `?string` | `passport_number` |
+| `dateOfBirth` | `?string` | `date_of_birth` |
+| `attributes` | `array<string,mixed>` | full decoded object |
+
+Methods: `get(string $key, mixed $default = null)`, `toArray()`.

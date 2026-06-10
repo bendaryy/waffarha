@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Maat\Waffarha\Auth\TokenManager;
 use Maat\Waffarha\Exceptions\WaffarhaRequestException;
+use Maat\Waffarha\WaffarhaClient;
 use Throwable;
 
 /**
@@ -17,7 +18,7 @@ use Throwable;
  *
  * Owns everything wire-related: attaching the bearer token, transient-failure
  * retries, the 401 refresh-and-replay loop, decoding, logging, and translating
- * failures into typed exceptions. {@see \Maat\Waffarha\WaffarhaClient} sits on
+ * failures into typed exceptions. {@see WaffarhaClient} sits on
  * top of this and deals only with the typed public API + DTO mapping.
  */
 class Transport
