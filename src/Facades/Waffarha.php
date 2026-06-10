@@ -1,21 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Maat\Waffarha\Facades;
 
 use Illuminate\Support\Facades\Facade;
+use Maat\Waffarha\Resources\Bookings;
+use Maat\Waffarha\Resources\Units;
 use Maat\Waffarha\WaffarhaClient;
 
 /**
  * @see WaffarhaClient
  *
- * @method static array|null getUnits(array $queryParameters = [])
- * @method static array|null getUnit(string $uuid)
- * @method static array|null listBookings(array $queryParameters = [])
- * @method static array|null createBooking(array $payload)
- * @method static array|null getBooking(string $uuid)
- * @method static array|null updateBooking(string $uuid, array $payload)
- * @method static array|null cancelBooking(string $uuid, ?string $reason = null)
- * @method static array|null request(string $method, string $endpoint, array $data = [])
+ * @method static Units units()
+ * @method static Bookings bookings()
+ * @method static array<string, mixed> request(string $method, string $endpoint, array<string, mixed> $data = [], array<string, scalar|null> $query = [])
  */
 class Waffarha extends Facade
 {

@@ -1,0 +1,127 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Parameter \#1 \$data of static method Maat\\Waffarha\\Data\\TokenResponse\:\:fromArray\(\) expects array\{token_type\?\: string, expires_in\?\: int, access_token\: string, refresh_token\?\: string\|null\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Auth/TokenManager.php
+
+		-
+			message: '#^Parameter \#1 \$data of static method Maat\\Waffarha\\Data\\Guest\:\:fromArray\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Data/Booking.php
+
+		-
+			message: '#^Parameter \#1 \$data of static method Maat\\Waffarha\\Data\\PaginationMeta\:\:fromArray\(\) expects array\{current_page\?\: int\|null, last_page\?\: int\|null, per_page\?\: int\|null, total\?\: int\|null, next_page_url\?\: string\|null, prev_page_url\?\: string\|null\}, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Data/BookingCollection.php
+
+		-
+			message: '#^Parameter \#1 \$data of static method Maat\\Waffarha\\Data\\PolicyDescription\:\:fromArray\(\) expects array\{id\?\: int\|null, description\?\: string\|null\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Data/CancellationPolicy.php
+
+		-
+			message: '#^Cannot cast mixed to string\.$#'
+			identifier: cast.string
+			count: 1
+			path: src/Data/PropertyDetails.php
+
+		-
+			message: '#^Parameter \#1 \$data of static method Maat\\Waffarha\\Data\\GalleryImage\:\:fromArray\(\) expects array\{id\?\: int\|null, img\?\: string\|null\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Data/RoomGallery.php
+
+		-
+			message: '#^Cannot cast mixed to string\.$#'
+			identifier: cast.string
+			count: 2
+			path: src/Data/Unit.php
+
+		-
+			message: '#^Parameter \#1 \$data of static method Maat\\Waffarha\\Data\\PaginationMeta\:\:fromArray\(\) expects array\{current_page\?\: int\|null, last_page\?\: int\|null, per_page\?\: int\|null, total\?\: int\|null, next_page_url\?\: string\|null, prev_page_url\?\: string\|null\}, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Data/UnitCollection.php
+
+		-
+			message: '#^Parameter \#1 \$data of static method Maat\\Waffarha\\Data\\Amenity\:\:fromArray\(\) expects array\{id\?\: int\|null, img\?\: string\|null, title\?\: string\|null, title_ar\?\: string\|null\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Data/UnitDetail.php
+
+		-
+			message: '#^Parameter \#1 \$data of static method Maat\\Waffarha\\Data\\CancellationPolicy\:\:fromArray\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Data/UnitDetail.php
+
+		-
+			message: '#^Parameter \#1 \$data of static method Maat\\Waffarha\\Data\\HouseDescription\:\:fromArray\(\) expects array\{category_name\?\: string\|null, category_icon\?\: string\|null, sort_order\?\: int\|null, descriptions\?\: list\<array\<string, mixed\>\>\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Data/UnitDetail.php
+
+		-
+			message: '#^Parameter \#1 \$data of static method Maat\\Waffarha\\Data\\RoomGallery\:\:fromArray\(\) expects array\{category_id\?\: int\|null, category_name\?\: string\|null, images\?\: list\<array\<string, mixed\>\>\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Data/UnitDetail.php
+
+		-
+			message: '#^Cannot access offset ''cache'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: src/WaffarhaServiceProvider.php
+
+		-
+			message: '#^Cannot call method make\(\) on mixed\.$#'
+			identifier: method.nonObject
+			count: 4
+			path: src/WaffarhaServiceProvider.php
+
+		-
+			message: '#^Cannot call method store\(\) on mixed\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: src/WaffarhaServiceProvider.php
+
+		-
+			message: '#^Cannot cast mixed to int\.$#'
+			identifier: cast.int
+			count: 4
+			path: src/WaffarhaServiceProvider.php
+
+		-
+			message: '#^Parameter \#1 \$transport of class Maat\\Waffarha\\Resources\\Bookings constructor expects Maat\\Waffarha\\Http\\Transport, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/WaffarhaServiceProvider.php
+
+		-
+			message: '#^Parameter \#1 \$transport of class Maat\\Waffarha\\Resources\\Units constructor expects Maat\\Waffarha\\Http\\Transport, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/WaffarhaServiceProvider.php
+
+		-
+			message: '#^Parameter \#1 \$transport of class Maat\\Waffarha\\WaffarhaClient constructor expects Maat\\Waffarha\\Http\\Transport, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/WaffarhaServiceProvider.php
+
+		-
+			message: '#^Parameter \$cache of class Maat\\Waffarha\\Auth\\TokenManager constructor expects Illuminate\\Contracts\\Cache\\Repository, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/WaffarhaServiceProvider.php
+
+		-
+			message: '#^Parameter \$tokenManager of class Maat\\Waffarha\\Http\\Transport constructor expects Maat\\Waffarha\\Auth\\TokenManager, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/WaffarhaServiceProvider.php
