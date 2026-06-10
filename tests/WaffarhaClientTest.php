@@ -328,7 +328,6 @@ class WaffarhaClientTest extends TestCase
         ]);
 
         $booking = $this->app->make(WaffarhaClient::class)->bookings()->create([
-            'provider' => 'waffarha',
             'provider_booking_id' => 'WAF-123456',
             'property_uuid' => 'b6d0b8d2',
             'check_in' => '2026-08-12',
@@ -344,7 +343,6 @@ class WaffarhaClientTest extends TestCase
         Http::assertSent(function ($request) {
             return str_contains($request->url(), '/bookings')
                 && $request->method() === 'POST'
-                && $request['provider'] === 'waffarha'
                 && $request['provider_booking_id'] === 'WAF-123456'
                 && $request->hasHeader('Authorization', 'Bearer access-1');
         });

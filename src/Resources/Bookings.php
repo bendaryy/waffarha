@@ -44,8 +44,13 @@ final class Bookings extends Resource
     }
 
     /**
-     * Create a booking on a Maat unit. Identify the source with
-     * `'provider' => 'waffarha'` (see docs/create-booking.md for the payload).
+     * Create a booking on a Maat unit.
+     *
+     * The acting provider is resolved server-side from the OAuth client behind
+     * the access token (`providers.passport_client_id` on Maat), so **do not**
+     * send a `provider` field in the payload — a token issued for one provider
+     * cannot create bookings for another. See `docs/create-booking.md` for the
+     * full payload reference.
      *
      * @param  array<string, mixed>  $payload
      *

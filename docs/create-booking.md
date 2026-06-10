@@ -1,7 +1,6 @@
 # `bookings()->create()` — create a booking
 
-Create a booking on a Maat unit. Identify the source with
-`'provider' => 'waffarha'`.
+Create a booking on a Maat unit.
 
 ```php
 Waffarha::bookings()->create(array $payload): Booking
@@ -11,12 +10,18 @@ Waffarha::bookings()->create(array $payload): Booking
 - **Returns:** [`Booking`](data-objects.md#booking) — the created booking.
 - **Throws:** `WaffarhaRequestException` on a non-2xx status or transport failure.
 
+> **Provider isolation.** Each provider integration has its own dedicated
+> Maat OAuth client. The acting provider is resolved server-side from the
+> client behind your access token (`providers.passport_client_id` on Maat),
+> so **do not** send a `provider` field in the payload — a token issued for
+> one provider can never create, list, update, or cancel bookings for
+> another.
+
 ## Payload
 
 | Key | Type | Required | Description |
 |-----|------|----------|-------------|
-| `provider` | string | yes | Provider slug — `waffarha`. |
-| `provider_booking_id` | string | yes | External reservation reference. |
+| `provider_booking_id` | string | yes | External reservation reference (idempotency key, unique per provider). |
 | `property_uuid` | string | yes | Maat property UUID. |
 | `check_in` / `check_out` | string | yes | Dates (`Y-m-d`). |
 | `guests_count` | int | yes | Number of guests. |
@@ -32,7 +37,6 @@ Waffarha::bookings()->create(array $payload): Booking
 use Maat\Waffarha\Facades\Waffarha;
 
 $booking = Waffarha::bookings()->create([
-    'provider' => 'waffarha',
     'provider_booking_id' => 'WAF-123456',
     'property_uuid' => 'b6d0b8d2-9c5e-4f1a-9c2a-7a4b8e3f1a0d',
     'check_in' => '2026-08-12',
