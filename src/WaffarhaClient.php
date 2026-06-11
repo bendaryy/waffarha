@@ -27,7 +27,8 @@ class WaffarhaClient
     ) {}
 
     /**
-     * The `units` API (list units, fetch a unit's details).
+     * The `units` API: list/get units, plus the per-unit `calendar` and
+     * `checkAvailability` helpers used before creating a booking.
      */
     public function units(): Units
     {
@@ -35,7 +36,7 @@ class WaffarhaClient
     }
 
     /**
-     * The `bookings` API (list/get/create/update/cancel provider bookings).
+     * The `bookings` API: list, fetch, and create provider bookings.
      */
     public function bookings(): Bookings
     {

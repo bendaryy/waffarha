@@ -62,6 +62,3 @@ echo $booking->uuid, ' ', $booking->status;
 > confirmed; the returned [`Booking`](data-objects.md#booking) keeps the full
 > payload in `$booking->attributes`. See [webhooks](webhooks.md) and
 > [data objects](data-objects.md#booking).
-
-To update or cancel a booking afterwards, see
-[`bookings()->update()` / `cancel()`](manage-booking.md).

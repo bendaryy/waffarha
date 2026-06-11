@@ -6,8 +6,10 @@ namespace Maat\Waffarha\Tests;
 
 use Illuminate\Support\Facades\Http;
 use Maat\Waffarha\Auth\TokenManager;
+use Maat\Waffarha\Data\AvailabilityCheck;
 use Maat\Waffarha\Data\Booking;
 use Maat\Waffarha\Data\BookingCollection;
+use Maat\Waffarha\Data\UnitCalendar;
 use Maat\Waffarha\Data\UnitCollection;
 use Maat\Waffarha\Data\UnitDetail;
 use Maat\Waffarha\Exceptions\WaffarhaConfigurationException;
@@ -348,23 +350,186 @@ class WaffarhaClientTest extends TestCase
         });
     }
 
-    public function test_cancel_booking_sends_reason_in_the_body(): void
+    /*
+     * TEMPORARILY DISABLED: cancel/update endpoints are off on the Maat side
+     * while the booking-state machine is being finalised, and the matching
+     * SDK helpers have been removed from Resources/Bookings. Restore this
+     * test verbatim alongside the helpers when the endpoints come back.
+     *
+     * // public function test_cancel_booking_sends_reason_in_the_body(): void
+     * // {
+     * //     $this->fakeToken();
+     * //     Http::fake([
+     * //         'maat.test/waffarha/bookings/b-1' => Http::response(['uuid' => 'b-1', 'status' => 'Cancelled']),
+     * //     ]);
+     * //
+     * //     $booking = $this->app->make(WaffarhaClient::class)->bookings()->cancel('b-1', 'Guest no-show');
+     * //
+     * //     $this->assertInstanceOf(Booking::class, $booking);
+     * //     $this->assertSame('Cancelled', $booking->status);
+     * //
+     * //     Http::assertSent(function ($request) {
+     * //         return str_contains($request->url(), '/bookings/b-1')
+     * //             && $request->method() === 'DELETE'
+     * //             && $request['reason'] === 'Guest no-show';
+     * //     });
+     * // }
+     */
+
+    public function test_unit_calendar_returns_a_typed_calendar_iterable(): void
     {
         $this->fakeToken();
         Http::fake([
-            'maat.test/waffarha/bookings/b-1' => Http::response(['uuid' => 'b-1', 'status' => 'Cancelled']),
+            'maat.test/waffarha/unit/u-1/calendar*' => Http::response([
+                'ResponseCode' => '200',
+                'Result' => 'true',
+                'ResponseMsg' => 'Calendar retrieved successfully.',
+                'property_uuid' => 'u-1',
+                'currency' => 'EGP',
+                'base_price' => 1500.00,
+                'window' => ['start_date' => '2026-08-01', 'end_date' => '2026-08-05', 'days' => 5],
+                'linked_dates' => [
+                    [
+                        'id' => 42,
+                        'name' => 'Eid Al-Adha',
+                        'start_date' => '2026-08-04',
+                        'end_date' => '2026-08-05',
+                        'required_nights' => 2,
+                        'message' => 'Must book the whole Eid Al-Adha holiday.',
+                    ],
+                ],
+                'calendar' => [
+                    ['date' => '2026-08-01', 'price' => 1500.00, 'currency' => 'EGP', 'available' => true,  'is_weekend' => false, 'linked_date_id' => null, 'reason' => null],
+                    ['date' => '2026-08-02', 'price' => 1800.00, 'currency' => 'EGP', 'available' => true,  'is_weekend' => true,  'linked_date_id' => null, 'reason' => 'weekend_rate'],
+                    ['date' => '2026-08-03', 'price' => 1500.00, 'currency' => 'EGP', 'available' => false, 'is_weekend' => false, 'linked_date_id' => null, 'reason' => 'booked'],
+                    ['date' => '2026-08-04', 'price' => 2000.00, 'currency' => 'EGP', 'available' => true,  'is_weekend' => false, 'linked_date_id' => 42,   'reason' => 'linked_date'],
+                    ['date' => '2026-08-05', 'price' => 2000.00, 'currency' => 'EGP', 'available' => true,  'is_weekend' => false, 'linked_date_id' => 42,   'reason' => 'linked_date'],
+                ],
+            ]),
         ]);
 
-        $booking = $this->app->make(WaffarhaClient::class)->bookings()->cancel('b-1', 'Guest no-show');
+        $calendar = $this->app->make(WaffarhaClient::class)
+            ->units()
+            ->calendar('u-1', ['start_date' => '2026-08-01', 'end_date' => '2026-08-05']);
 
-        $this->assertInstanceOf(Booking::class, $booking);
-        $this->assertSame('Cancelled', $booking->status);
+        $this->assertInstanceOf(UnitCalendar::class, $calendar);
+        $this->assertSame('u-1', $calendar->propertyUuid);
+        $this->assertSame('EGP', $calendar->currency);
+        $this->assertSame(1500.00, $calendar->basePrice);
+        $this->assertSame('2026-08-01', $calendar->startDate);
+        $this->assertSame('2026-08-05', $calendar->endDate);
+        $this->assertSame(5, $calendar->totalDays);
+        $this->assertCount(5, $calendar);
 
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/bookings/b-1')
-                && $request->method() === 'DELETE'
-                && $request['reason'] === 'Guest no-show';
-        });
+        // Plain available day.
+        $this->assertSame('2026-08-01', $calendar->days[0]->date);
+        $this->assertSame(1500.00, $calendar->days[0]->price);
+        $this->assertTrue($calendar->days[0]->available);
+        $this->assertFalse($calendar->days[0]->isWeekend);
+        $this->assertNull($calendar->days[0]->linkedDateId);
+        $this->assertNull($calendar->days[0]->reason);
+
+        // Weekend rate.
+        $this->assertSame('weekend_rate', $calendar->days[1]->reason);
+        $this->assertTrue($calendar->days[1]->isWeekend);
+
+        // Booked day.
+        $this->assertFalse($calendar->days[2]->available);
+        $this->assertSame('booked', $calendar->days[2]->reason);
+
+        // Linked-date day: still individually available, but flagged so the
+        // partner UI can warn the guest before they pick the range.
+        $this->assertTrue($calendar->days[3]->available);
+        $this->assertSame('linked_date', $calendar->days[3]->reason);
+        $this->assertSame(42, $calendar->days[3]->linkedDateId);
+
+        // Top-level linked_dates list cross-references the per-day id.
+        $this->assertCount(1, $calendar->linkedDates);
+        $this->assertSame(42, $calendar->linkedDates[0]->id);
+        $this->assertSame('Eid Al-Adha', $calendar->linkedDates[0]->name);
+        $this->assertSame(2, $calendar->linkedDates[0]->requiredNights);
+        $this->assertSame('Must book the whole Eid Al-Adha holiday.', $calendar->linkedDates[0]->message);
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/unit/u-1/calendar')
+            && $request->method() === 'GET'
+            && $request['start_date'] === '2026-08-01'
+            && $request['end_date'] === '2026-08-05'
+            && $request->hasHeader('Authorization', 'Bearer access-1'));
+    }
+
+    public function test_check_availability_returns_a_typed_breakdown_when_available(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/unit/u-1/check' => Http::response([
+                'ResponseCode' => '200',
+                'Result' => 'true',
+                'ResponseMsg' => 'That Date Range Available!',
+                'available' => true,
+                'property_uuid' => 'u-1',
+                'check_in' => '2026-08-12',
+                'check_out' => '2026-08-15',
+                'nights' => 3,
+                'currency' => 'EGP',
+                'subtotal' => 4500.00,
+                'breakdown' => [
+                    ['date' => '2026-08-12', 'price' => 1500.00, 'is_weekend' => false, 'has_special_rate' => false],
+                    ['date' => '2026-08-13', 'price' => 1500.00, 'is_weekend' => false, 'has_special_rate' => false],
+                    ['date' => '2026-08-14', 'price' => 1500.00, 'is_weekend' => true, 'has_special_rate' => false],
+                ],
+            ]),
+        ]);
+
+        $check = $this->app->make(WaffarhaClient::class)
+            ->units()
+            ->checkAvailability('u-1', [
+                'check_in' => '2026-08-12',
+                'check_out' => '2026-08-15',
+                'guests_count' => 2,
+            ]);
+
+        $this->assertInstanceOf(AvailabilityCheck::class, $check);
+        $this->assertTrue($check->available);
+        $this->assertSame('u-1', $check->propertyUuid);
+        $this->assertSame('2026-08-12', $check->checkIn);
+        $this->assertSame('2026-08-15', $check->checkOut);
+        $this->assertSame(3, $check->nights);
+        $this->assertSame('EGP', $check->currency);
+        $this->assertSame(4500.00, $check->subtotal);
+        $this->assertCount(3, $check);
+        $this->assertSame(1500.00, $check->breakdown[0]->price);
+        $this->assertTrue($check->breakdown[2]->isWeekend);
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/unit/u-1/check')
+            && $request->method() === 'POST'
+            && $request['check_in'] === '2026-08-12'
+            && $request['check_out'] === '2026-08-15'
+            && $request['guests_count'] === 2);
+    }
+
+    public function test_check_availability_throws_a_typed_request_exception_on_409(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/unit/u-1/check' => Http::response([
+                'ResponseCode' => '409',
+                'Result' => 'false',
+                'available' => false,
+                'reason' => 'booking_overlap',
+                'ResponseMsg' => 'That Date Range Already Booked!',
+            ], 409),
+        ]);
+
+        try {
+            $this->app->make(WaffarhaClient::class)
+                ->units()
+                ->checkAvailability('u-1', ['check_in' => '2026-08-12', 'check_out' => '2026-08-15']);
+            $this->fail('Expected WaffarhaRequestException was not thrown.');
+        } catch (WaffarhaRequestException $e) {
+            $this->assertSame(409, $e->status);
+            $this->assertIsArray($e->body);
+            $this->assertSame('booking_overlap', $e->body['reason'] ?? null);
+        }
     }
 
     public function test_a_failed_bookings_response_throws_a_typed_request_exception(): void

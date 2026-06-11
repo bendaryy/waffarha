@@ -70,10 +70,11 @@ You can also resolve the client via dependency injection
 | [Authentication](docs/authentication.md) | How tokens are obtained/cached/refreshed; token endpoint reference |
 | [`units()->list()`](docs/get-units.md) | List units — params, response, return type |
 | [`units()->get()`](docs/get-unit.md) | Unit details — response shape, full field reference |
+| [`units()->calendar()`](docs/unit-calendar.md) | Per-day pricing + availability calendar (60-day default window, 365-day cap) |
+| [`units()->checkAvailability()`](docs/check-availability.md) | Confirm a date range + price breakdown before creating a booking |
 | [`bookings()->list()`](docs/list-bookings.md) | List bookings — filters, response, return type |
 | [`bookings()->get()`](docs/get-booking.md) | Booking details by UUID |
 | [`bookings()->create()`](docs/create-booking.md) | Create a booking — payload reference |
-| [`bookings()->update()` / `cancel()`](docs/manage-booking.md) | Update or cancel a booking |
 | [Webhooks](docs/webhooks.md) | Outbound booking webhooks (Maat → Waffarha) |
 | [Custom requests](docs/custom-requests.md) | The generic `request()` escape hatch |
 | [Data objects](docs/data-objects.md) | Field reference for every returned DTO |

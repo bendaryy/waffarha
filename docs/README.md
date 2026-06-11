@@ -13,10 +13,11 @@ start, see the [project README](../README.md).
 
 - [`units()->list()`](get-units.md) — list units (returns `UnitCollection`).
 - [`units()->get()`](get-unit.md) — unit details (returns `UnitDetail`).
+- [`units()->calendar()`](unit-calendar.md) — per-day pricing + availability (returns `UnitCalendar`).
+- [`units()->checkAvailability()`](check-availability.md) — confirm a date range + price breakdown (returns `AvailabilityCheck`).
 - [`bookings()->list()`](list-bookings.md) — list bookings (returns `BookingCollection`).
 - [`bookings()->get()`](get-booking.md) — booking details (returns `Booking`).
 - [`bookings()->create()`](create-booking.md) — create a booking (returns `Booking`).
-- [`bookings()->update()` / `cancel()`](manage-booking.md) — update or cancel a booking.
 - [Custom requests](custom-requests.md) — the generic `request()` escape hatch.
 
 ### Reference

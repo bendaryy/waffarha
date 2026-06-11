@@ -8,6 +8,11 @@ the `Maat\Waffarha\Data` namespace, are `final readonly`, and expose a static
 > `beds`, …) are returned by the API as strings (e.g. `"1000"`) and kept verbatim
 > as strings to avoid precision/rounding surprises. Genuine integers
 > (`plimit`, ids) and booleans are typed as such.
+>
+> **Exception:** the calendar / availability-check DTOs (`UnitCalendarDay`,
+> `AvailabilityCheck`, `AvailabilityNight`) expose `price` / `subtotal` as
+> `?float` because Maat returns those values as JSON numbers rounded
+> server-side to 2 decimals.
 
 ## Returned by `units()->list()`
 
@@ -197,6 +202,92 @@ Used for both the guest policy and each host policy. The host-only fields are
 |----------|------|-----------|
 | `id` | `?int` | `id` |
 | `description` | `?string` | `description` |
+
+## Returned by `units()->calendar()` / `checkAvailability()`
+
+### UnitCalendar
+
+Iterable (`foreach`) and countable (`count()`). Returned by `units()->calendar()`.
+
+| Property | Type | Source key |
+|----------|------|-----------|
+| `propertyUuid` | `?string` | `property_uuid` |
+| `currency` | `?string` | `currency` (always `"EGP"` today) |
+| `basePrice` | `?float` | `base_price` |
+| `startDate` | `?string` | `window.start_date` |
+| `endDate` | `?string` | `window.end_date` |
+| `totalDays` | `?int` | `window.days` |
+| `days` | `list<UnitCalendarDay>` | `calendar` rows |
+| `linkedDates` | `list<LinkedDateSummary>` | `linked_dates` rows |
+
+Methods: `count()`, `getIterator()`, `toArray(): array` (raw day rows).
+
+### UnitCalendarDay
+
+A single row inside `UnitCalendar::$days`.
+
+| Property | Type | Source key |
+|----------|------|-----------|
+| `date` | `?string` | `date` (`Y-m-d`) |
+| `price` | `?float` | `price` (EGP, rounded to 2 decimals) |
+| `currency` | `?string` | `currency` |
+| `available` | `?bool` | `available` |
+| `isWeekend` | `?bool` | `is_weekend` |
+| `linkedDateId` | `?int` | `linked_date_id` — cross-reference into `UnitCalendar::$linkedDates` |
+| `reason` | `?string` | `reason` — `null`, `"weekend_rate"`, `"special_rate"`, `"linked_date"`, `"booked"`, or `"blocked"` (priority: `booked` > `blocked` > `linked_date` > `special_rate` > `weekend_rate`) |
+| `attributes` | `array<string,mixed>` | full decoded row |
+
+Methods: `get(string $key, mixed $default = null)`, `toArray()`.
+
+### LinkedDateSummary
+
+A single host-defined minimum-stay rule overlapping the calendar window.
+Inside `UnitCalendar::$linkedDates`.
+
+| Property | Type | Source key |
+|----------|------|-----------|
+| `id` | `?int` | `id` — referenced by `UnitCalendarDay::$linkedDateId` |
+| `name` | `?string` | `name` |
+| `startDate` | `?string` | `start_date` |
+| `endDate` | `?string` | `end_date` |
+| `requiredNights` | `?int` | `required_nights` |
+| `message` | `?string` | `message` — user-facing explanation, safe to render verbatim |
+| `attributes` | `array<string,mixed>` | full decoded row |
+
+Methods: `toArray()`.
+
+### AvailabilityCheck
+
+Iterable (`foreach`) and countable (`count()`). Returned by `units()->checkAvailability()`
+on the happy path; an unavailable date range surfaces as a `WaffarhaRequestException`
+(HTTP 409) instead — see [check-availability.md](check-availability.md).
+
+| Property | Type | Source key |
+|----------|------|-----------|
+| `available` | `bool` | `available` (defaults to `true` when absent) |
+| `propertyUuid` | `?string` | `property_uuid` |
+| `checkIn` | `?string` | `check_in` |
+| `checkOut` | `?string` | `check_out` |
+| `nights` | `?int` | `nights` |
+| `currency` | `?string` | `currency` |
+| `subtotal` | `?float` | `subtotal` (EGP, rounded to 2 decimals) |
+| `breakdown` | `list<AvailabilityNight>` | `breakdown` rows |
+
+Methods: `count()`, `getIterator()`.
+
+### AvailabilityNight
+
+A single row inside `AvailabilityCheck::$breakdown`.
+
+| Property | Type | Source key |
+|----------|------|-----------|
+| `date` | `?string` | `date` |
+| `price` | `?float` | `price` |
+| `isWeekend` | `?bool` | `is_weekend` |
+| `hasSpecialRate` | `?bool` | `has_special_rate` |
+| `attributes` | `array<string,mixed>` | full decoded row |
+
+Methods: `toArray()`.
 
 ## Returned by `bookings()->*`
 

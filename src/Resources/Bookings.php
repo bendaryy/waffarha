@@ -10,7 +10,14 @@ use Maat\Waffarha\Exceptions\WaffarhaRequestException;
 
 /**
  * The `bookings` API: listing provider bookings, fetching a single booking, and
- * creating / updating / cancelling bookings on Maat units.
+ * creating bookings on Maat units.
+ *
+ * NOTE: `update()` and `cancel()` are intentionally disabled while the Maat
+ * server-side endpoints (`PUT/DELETE /waffarha/bookings/{uuid}`) are
+ * temporarily off. The methods are kept (commented out) below so they can be
+ * brought back with a single-commit revert once the booking-state machine
+ * lands. Calling them today would just hit a 404 on Maat, so we hard-disable
+ * here to give consumers a clear compile-time signal.
  */
 final class Bookings extends Resource
 {
@@ -63,31 +70,22 @@ final class Bookings extends Resource
         );
     }
 
-    /**
-     * Update a booking (status, dates, guests, total, notes, guest details).
+    /*
+     * TEMPORARILY DISABLED — see class docblock.
      *
-     * @param  array<string, mixed>  $payload
+     * // public function update(string $uuid, array $payload): Booking
+     * // {
+     * //     return Booking::fromArray(
+     * //         $this->transport->send('PUT', "bookings/{$uuid}", $payload)
+     * //     );
+     * // }
      *
-     * @throws WaffarhaRequestException
+     * // public function cancel(string $uuid, ?string $reason = null): Booking
+     * // {
+     * //     $payload = $reason !== null ? ['reason' => $reason] : [];
+     * //     return Booking::fromArray(
+     * //         $this->transport->send('DELETE', "bookings/{$uuid}", $payload)
+     * //     );
+     * // }
      */
-    public function update(string $uuid, array $payload): Booking
-    {
-        return Booking::fromArray(
-            $this->transport->send('PUT', "bookings/{$uuid}", $payload)
-        );
-    }
-
-    /**
-     * Cancel a booking, optionally recording a reason.
-     *
-     * @throws WaffarhaRequestException
-     */
-    public function cancel(string $uuid, ?string $reason = null): Booking
-    {
-        $payload = $reason !== null ? ['reason' => $reason] : [];
-
-        return Booking::fromArray(
-            $this->transport->send('DELETE', "bookings/{$uuid}", $payload)
-        );
-    }
 }
