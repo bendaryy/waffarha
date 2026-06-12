@@ -9,15 +9,14 @@ namespace Maat\Waffarha\Data;
  * endpoint (`POST /waffarha/bookings`, `GET /waffarha/bookings/{uuid}`, the
  * collection list, plus the outbound `reservation.*` webhooks).
  *
- * The numbers are exactly what Maat persisted on `tbl_book` after running the
- * server-side pricing pipeline — they are the source of truth for partner
- * payouts and reconciliation, **not** the `total_amount` the partner sent in
- * the create request (which is informational and logged-on-mismatch).
+ * Only fields the partner needs for reconciliation (subtotal, cleaning fee,
+ * total) are exposed — commission / net-amount stay internal to Maat. The
+ * `total` here is the server-computed amount that landed on `tbl_book.total`
+ * (Maat re-runs the same pipeline as `units()->checkAvailability()`), so it
+ * is the authoritative number even when it differs from the `total_amount`
+ * the partner sent in the create request.
  *
- * All monetary fields are floats in EGP (other currencies were never stored;
- * the property's base currency is converted at booking time). `netAmount` is
- * nullable because legacy bookings created before the financials refactor may
- * have `tbl_book.net_amount` set to `NULL`.
+ * All monetary fields are floats in EGP.
  */
 final readonly class BookingFinancial
 {
@@ -26,9 +25,6 @@ final readonly class BookingFinancial
         public float $subtotal,
         public float $cleaningFee,
         public float $total,
-        public float $commissionPerDay,
-        public float $totalCommission,
-        public ?float $netAmount,
     ) {}
 
     /**
@@ -40,8 +36,6 @@ final readonly class BookingFinancial
             ? (float) $data[$key]
             : $default;
 
-        $netAmount = $data['net_amount'] ?? null;
-
         return new self(
             currency: isset($data['currency']) && is_string($data['currency']) && $data['currency'] !== ''
                 ? $data['currency']
@@ -49,9 +43,6 @@ final readonly class BookingFinancial
             subtotal: $float('subtotal'),
             cleaningFee: $float('cleaning_fee'),
             total: $float('total'),
-            commissionPerDay: $float('commission_per_day'),
-            totalCommission: $float('total_commission'),
-            netAmount: is_numeric($netAmount) ? (float) $netAmount : null,
         );
     }
 }

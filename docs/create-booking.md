@@ -60,8 +60,7 @@ echo $booking->uuid, ' ', $booking->status;
 
 ## Response
 
-A 201 returns the persisted booking with a `financial` block that mirrors
-every column Maat wrote to `tbl_book` for the reservation:
+A 201 returns the persisted booking with a partner-safe `financial` block:
 
 ```json
 {
@@ -70,7 +69,7 @@ every column Maat wrote to `tbl_book` for the reservation:
   "ResponseMsg": "Booking created successfully.",
   "booking": {
     "id": "9b3a1c6e-4d2f-4d1e-8a5b-2c8d8e9f0a1b",
-    "provider": { "id": 1, "name": "Waffarha" },
+    "provider": "Waffarha",
     "provider_booking_id": "WAF-123456",
     "status": "Confirmed",
     "check_in": "2026-08-12",
@@ -83,10 +82,7 @@ every column Maat wrote to `tbl_book` for the reservation:
       "currency": "EGP",
       "subtotal": 17280,
       "cleaning_fee": 1560,
-      "total": 18840,
-      "commission_per_day": 921.6,
-      "total_commission": 2764.8,
-      "net_amount": 16075.2
+      "total": 18840
     },
     "property": { "uuid": "...", "title": "...", "city": "..." },
     "guest": { "name": "Ahmed Mohamed", "...": "..." },
@@ -101,15 +97,17 @@ How `financial` is derived (same pipeline as `/check`):
 - `subtotal` — sum of every night's `price` from the per-day breakdown
   (base price → SpecialRate → weekend uplift), in EGP.
 - `cleaning_fee` — `tbl_property.cleaning_fee` converted to EGP, charged
-  once per booking (commission-free).
-- `total` — `subtotal + cleaning_fee` — what the partner is billed.
-  Commission is **not** added, same convention as `/v1/u_simulate_booking`.
-- `commission_per_day` — `total_commission / total_days`, persisted on
-  `tbl_book.commission` so legacy host reports keep working.
-- `total_commission` — `subtotal × commission_percentage / 100`. The
-  percentage is pulled from `tbl_setting.commission` at booking time.
-- `net_amount` — `subtotal − total_commission + cleaning_fee` — what Maat
-  owes the host (host keeps the cleaning fee in full).
+  once per booking.
+- `total` — `subtotal + cleaning_fee` — what the partner is billed. This is
+  the figure to send as `total_amount` on the next create call; if it
+  differs from your number Maat persists the server total and logs a
+  mismatch warning. Same convention as `POST /v1/u_simulate_booking` —
+  commission is **not** added.
+
+> Maat's commission breakdown (`commission_per_day`, `total_commission`,
+> `net_amount`) is computed on the server and persisted to `tbl_book` so
+> host payouts and BI reports work, but it is **not** exposed on the
+> partner-facing API or webhooks — that's internal accounting.
 
 The same `financial` block is mirrored on every webhook payload — see
 [webhooks](webhooks.md) and [data objects](data-objects.md#booking).

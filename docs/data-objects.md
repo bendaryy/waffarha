@@ -440,20 +440,20 @@ Methods: `get(string $key, mixed $default = null)`, `toArray()`.
 
 ### BookingFinancial
 
-Nested under `Booking::$financial`. Mirrors exactly what Maat persisted on
-`tbl_book` after running the server-side pricing pipeline — these numbers
-(not the partner-sent `total_amount`) are the source of truth for partner
-reconciliation and host payouts. All monetary values are floats in EGP.
+Nested under `Booking::$financial`. Partner-safe slice of the financial
+record Maat persisted to `tbl_book` after running the server-side pricing
+pipeline. All monetary values are floats in EGP.
 
 | Property | Type | Source key | Notes |
 |----------|------|-----------|-------|
 | `currency` | `string` | `currency` | Always `"EGP"`. |
 | `subtotal` | `float` | `subtotal` | Sum of every night's `price` from `units()->checkAvailability()`. |
-| `cleaningFee` | `float` | `cleaning_fee` | `tbl_property.cleaning_fee` in EGP — one-time, commission-free. |
+| `cleaningFee` | `float` | `cleaning_fee` | `tbl_property.cleaning_fee` in EGP — one-time. |
 | `total` | `float` | `total` | `subtotal + cleaning_fee` — what the partner is billed. Commission is **not** added (same as `/v1/u_simulate_booking`). |
-| `commissionPerDay` | `float` | `commission_per_day` | `total_commission / total_days` — mirrors `tbl_book.commission` for legacy reports. |
-| `totalCommission` | `float` | `total_commission` | `subtotal × commission_percentage / 100`. |
-| `netAmount` | `?float` | `net_amount` | `subtotal − total_commission + cleaning_fee` — what Maat owes the host. Nullable for legacy bookings created before the financials refactor. |
+
+> Maat's commission breakdown (commission per day, total commission, net
+> amount) is computed and persisted to `tbl_book` for host payouts but is
+> never exposed on this DTO — that's internal accounting.
 
 ### Guest
 
