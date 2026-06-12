@@ -467,17 +467,107 @@ class WaffarhaClientTest extends TestCase
                 'ResponseMsg' => 'That Date Range Available!',
                 'available' => true,
                 'property_uuid' => 'u-1',
-                'check_in' => '2026-08-12',
-                'check_out' => '2026-08-15',
-                'nights' => 3,
-                'currency' => 'EGP',
-                'subtotal' => 4500.00,
-                'cleaning_fee' => 250.00,
-                'total' => 4750.00,
+                'booking_dates' => [
+                    'check_in' => '2026-08-12',
+                    'check_out' => '2026-08-15',
+                    'total_days' => 3,
+                    'normal_days' => 1,
+                    'weekend_days' => 2,
+                ],
+                'property' => [
+                    'uuid' => 'u-1',
+                    'title' => 'Catalina Updated',
+                    'image' => 'https://cdn.example.com/catalina.jpg',
+                    'address' => '2FXH+75M, New Cairo 1',
+                    'city' => 'New Cairo',
+                    'beds' => 1,
+                    'bathroom' => 2,
+                ],
+                'financial' => [
+                    'currency' => 'EGP',
+                    'subtotal' => 4500.00,
+                    'cleaning_fee' => 250.00,
+                    'commission_percentage' => 1.00,
+                    'commission_amount' => 45.00,
+                    'total' => 4750.00,
+                ],
+                'special_rates_applied' => [
+                    [
+                        'id' => 15739,
+                        'name' => 'Winter Promo',
+                        'start_date' => '2026-08-12',
+                        'end_date' => '2026-08-20',
+                        'nightly_price_override' => 20.0,
+                        'effective_nightly_price' => 1800.00,
+                        'base_price' => 1500.00,
+                        'is_increase' => true,
+                        'is_discount' => false,
+                        'is_premium' => true,
+                        'discount_percentage' => null,
+                        'increase_percentage' => 20.0,
+                    ],
+                ],
                 'breakdown' => [
-                    ['date' => '2026-08-12', 'price' => 1500.00, 'is_weekend' => false, 'has_special_rate' => false],
-                    ['date' => '2026-08-13', 'price' => 1500.00, 'is_weekend' => false, 'has_special_rate' => false],
-                    ['date' => '2026-08-14', 'price' => 1500.00, 'is_weekend' => true, 'has_special_rate' => false],
+                    [
+                        'date' => '2026-08-12',
+                        'day_name_english' => 'Wednesday',
+                        'day_name_arabic' => 'الأربعاء',
+                        'is_weekend' => false,
+                        'base_price' => 1500.00,
+                        'price_after_special_rate' => 1500.00,
+                        'price' => 1500.00,
+                        'has_special_rate' => false,
+                        'special_rate_id' => null,
+                        'special_rate_name' => null,
+                        'special_rate_percentage' => null,
+                        'special_rate_is_increase' => null,
+                        'is_discount' => false,
+                        'is_premium' => false,
+                        'discount_percentage' => null,
+                        'increase_percentage' => null,
+                        'weekend_percentage' => null,
+                        'weekend_amount' => null,
+                    ],
+                    [
+                        'date' => '2026-08-13',
+                        'day_name_english' => 'Thursday',
+                        'day_name_arabic' => 'الخميس',
+                        'is_weekend' => true,
+                        'base_price' => 1500.00,
+                        'price_after_special_rate' => 1500.00,
+                        'price' => 1500.00,
+                        'has_special_rate' => false,
+                        'special_rate_id' => null,
+                        'special_rate_name' => null,
+                        'special_rate_percentage' => null,
+                        'special_rate_is_increase' => null,
+                        'is_discount' => false,
+                        'is_premium' => false,
+                        'discount_percentage' => null,
+                        'increase_percentage' => null,
+                        'weekend_percentage' => null,
+                        'weekend_amount' => null,
+                    ],
+                    [
+                        'date' => '2026-08-14',
+                        'day_name_english' => 'Friday',
+                        'day_name_arabic' => 'الجمعة',
+                        'is_weekend' => true,
+                        'base_price' => 1500.00,
+                        'price_after_special_rate' => 1800.00,
+                        'price' => 1500.00,
+                        'has_special_rate' => true,
+                        'special_rate_id' => 15739,
+                        'special_rate_name' => 'Winter Promo',
+                        'special_rate_percentage' => 20.0,
+                        'special_rate_is_increase' => true,
+                        'is_discount' => false,
+                        'is_premium' => true,
+                        'discount_percentage' => null,
+                        'increase_percentage' => 20.0,
+                        'weekend_percentage' => 10.0,
+                        'weekend_amount' => 180.0,
+                    ],
                 ],
             ]),
         ]);
@@ -496,13 +586,46 @@ class WaffarhaClientTest extends TestCase
         $this->assertSame('2026-08-12', $check->checkIn);
         $this->assertSame('2026-08-15', $check->checkOut);
         $this->assertSame(3, $check->nights);
+        $this->assertSame(3, $check->bookingDates->totalDays);
+        $this->assertSame(1, $check->bookingDates->normalDays);
+        $this->assertSame(2, $check->bookingDates->weekendDays);
         $this->assertSame('EGP', $check->currency);
         $this->assertSame(4500.00, $check->subtotal);
         $this->assertSame(250.00, $check->cleaningFee);
         $this->assertSame(4750.00, $check->total);
+        $this->assertSame(1.00, $check->commissionPercentage);
+        $this->assertSame(45.00, $check->commissionAmount);
+        $this->assertSame('EGP', $check->financial->currency);
+        $this->assertSame(45.00, $check->financial->commissionAmount);
+        $this->assertNotNull($check->property);
+        $this->assertSame('u-1', $check->property->uuid);
+        $this->assertSame('Catalina Updated', $check->property->title);
+        $this->assertSame('New Cairo', $check->property->city);
+        $this->assertSame(1, $check->property->beds);
+        $this->assertSame(2, $check->property->bathroom);
         $this->assertCount(3, $check);
         $this->assertSame(1500.00, $check->breakdown[0]->price);
+        $this->assertSame('Wednesday', $check->breakdown[0]->dayNameEnglish);
+        $this->assertSame('الأربعاء', $check->breakdown[0]->dayNameArabic);
+        $this->assertSame(1500.00, $check->breakdown[0]->basePrice);
+        $this->assertNull($check->breakdown[0]->specialRateId);
         $this->assertTrue($check->breakdown[2]->isWeekend);
+        $this->assertTrue($check->breakdown[2]->hasSpecialRate);
+        $this->assertSame(15739, $check->breakdown[2]->specialRateId);
+        $this->assertSame('Winter Promo', $check->breakdown[2]->specialRateName);
+        $this->assertSame(20.0, $check->breakdown[2]->specialRatePercentage);
+        $this->assertTrue($check->breakdown[2]->isPremium);
+        $this->assertSame(10.0, $check->breakdown[2]->weekendPercentage);
+        $this->assertSame(180.0, $check->breakdown[2]->weekendAmount);
+
+        $this->assertCount(1, $check->specialRatesApplied);
+        $this->assertSame(15739, $check->specialRatesApplied[0]->id);
+        $this->assertSame('Winter Promo', $check->specialRatesApplied[0]->name);
+        $this->assertSame(20.0, $check->specialRatesApplied[0]->nightlyPriceOverride);
+        $this->assertSame(1800.00, $check->specialRatesApplied[0]->effectiveNightlyPrice);
+        $this->assertSame(1500.00, $check->specialRatesApplied[0]->basePrice);
+        $this->assertTrue($check->specialRatesApplied[0]->isPremium);
+        $this->assertSame(20.0, $check->specialRatesApplied[0]->increasePercentage);
 
         Http::assertSent(fn ($request) => str_contains($request->url(), '/unit/u-1/check')
             && $request->method() === 'POST'
@@ -511,7 +634,7 @@ class WaffarhaClientTest extends TestCase
             && $request['guests_count'] === 2);
     }
 
-    public function test_check_availability_falls_back_to_subtotal_when_api_omits_cleaning_fee_and_total(): void
+    public function test_check_availability_parses_legacy_top_level_money_fields_for_backwards_compat(): void
     {
         $this->fakeToken();
         Http::fake([
@@ -536,6 +659,16 @@ class WaffarhaClientTest extends TestCase
         $this->assertSame(1500.00, $check->subtotal);
         $this->assertNull($check->cleaningFee);
         $this->assertSame(1500.00, $check->total);
+        $this->assertNull($check->commissionPercentage);
+        $this->assertNull($check->commissionAmount);
+        $this->assertNull($check->property);
+
+        $this->assertSame('2026-08-12', $check->bookingDates->checkIn);
+        $this->assertSame('2026-08-13', $check->bookingDates->checkOut);
+        $this->assertSame(1, $check->bookingDates->totalDays);
+        $this->assertNull($check->bookingDates->normalDays);
+        $this->assertNull($check->bookingDates->weekendDays);
+        $this->assertSame([], $check->specialRatesApplied);
     }
 
     public function test_check_availability_throws_a_typed_request_exception_on_409(): void

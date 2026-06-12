@@ -23,32 +23,60 @@ use Traversable;
  *     foreach ($check as $night) { echo "{$night->date}: {$night->price}\n"; }
  *     $nights = count($check);
  *
+ * Date + money fields are grouped into blocks (`$bookingDates`, `$financial`)
+ * to mirror the API shape. The most commonly used ones (`$checkIn`,
+ * `$checkOut`, `$nights`, `$subtotal`, `$cleaningFee`, `$total`, `$currency`)
+ * are also exposed as top-level read-only properties for ergonomics + IDE
+ * autocomplete — they delegate to the same underlying blocks at
+ * construction time.
+ *
  * @implements IteratorAggregate<int, AvailabilityNight>
  *
- * `$subtotal` is the nightly sum (before the one-time cleaning fee).
- * `$cleaningFee` is the one-time, per-booking cleaning fee charged on top
- * (already converted to EGP). `$total` = `$subtotal + $cleaningFee` — this
- * is the headline number partners should display to the guest.
- *
- * @phpstan-type AvailabilityPayload array{available?: bool|int|string|null, property_uuid?: string|null, check_in?: string|null, check_out?: string|null, nights?: int|string|null, currency?: string|null, subtotal?: int|float|string|null, cleaning_fee?: int|float|string|null, total?: int|float|string|null, breakdown?: list<array<string, mixed>>}
+ * @phpstan-type AvailabilityPayload array{available?: bool|int|string|null, property_uuid?: string|null, check_in?: string|null, check_out?: string|null, nights?: int|string|null, booking_dates?: array<string, mixed>, currency?: string|null, subtotal?: int|float|string|null, cleaning_fee?: int|float|string|null, total?: int|float|string|null, financial?: array<string, mixed>, property?: array<string, mixed>, special_rates_applied?: list<array<string, mixed>>, breakdown?: list<array<string, mixed>>}
  */
 final readonly class AvailabilityCheck implements Countable, IteratorAggregate
 {
+    public ?string $checkIn;
+
+    public ?string $checkOut;
+
+    public ?int $nights;
+
+    public ?string $currency;
+
+    public ?float $subtotal;
+
+    public ?float $cleaningFee;
+
+    public ?float $total;
+
+    public ?float $commissionPercentage;
+
+    public ?float $commissionAmount;
+
     /**
      * @param  list<AvailabilityNight>  $breakdown
+     * @param  list<SpecialRateApplied>  $specialRatesApplied
      */
     public function __construct(
         public bool $available,
         public ?string $propertyUuid,
-        public ?string $checkIn,
-        public ?string $checkOut,
-        public ?int $nights,
-        public ?string $currency,
-        public ?float $subtotal,
-        public ?float $cleaningFee,
-        public ?float $total,
+        public BookingDates $bookingDates,
+        public AvailabilityFinancial $financial,
+        public ?AvailabilityProperty $property,
+        public array $specialRatesApplied,
         public array $breakdown,
-    ) {}
+    ) {
+        $this->checkIn = $bookingDates->checkIn;
+        $this->checkOut = $bookingDates->checkOut;
+        $this->nights = $bookingDates->totalDays;
+        $this->currency = $financial->currency;
+        $this->subtotal = $financial->subtotal;
+        $this->cleaningFee = $financial->cleaningFee;
+        $this->total = $financial->total;
+        $this->commissionPercentage = $financial->commissionPercentage;
+        $this->commissionAmount = $financial->commissionAmount;
+    }
 
     /**
      * @param  AvailabilityPayload  $data
@@ -65,31 +93,48 @@ final readonly class AvailabilityCheck implements Countable, IteratorAggregate
             }
         }
 
-        $subtotal = $data['subtotal'] ?? null;
-        $cleaningFee = $data['cleaning_fee'] ?? null;
-        $total = $data['total'] ?? null;
-        $nights = $data['nights'] ?? null;
+        // New shape — `booking_dates` block. Falls back to the legacy
+        // top-level `check_in` / `check_out` / `nights` keys so the SDK
+        // keeps parsing pre-booking-dates Maat responses without crashing.
+        $bookingDates = isset($data['booking_dates']) && is_array($data['booking_dates'])
+            ? BookingDates::fromArray($data['booking_dates'])
+            : BookingDates::fromLegacyTopLevel([
+                'check_in' => $data['check_in'] ?? null,
+                'check_out' => $data['check_out'] ?? null,
+                'nights' => $data['nights'] ?? null,
+            ]);
 
-        $resolvedSubtotal = is_numeric($subtotal) ? (float) $subtotal : null;
-        $resolvedCleaningFee = is_numeric($cleaningFee) ? (float) $cleaningFee : null;
-        // Fall back to `subtotal + cleaning_fee` so older API responses (which
-        // omit `total`) still surface a usable headline number for partners.
-        $resolvedTotal = is_numeric($total)
-            ? (float) $total
-            : ($resolvedSubtotal !== null
-                ? round($resolvedSubtotal + ($resolvedCleaningFee ?? 0.0), 2)
-                : null);
+        // Same dance for the `financial` block.
+        $financial = isset($data['financial']) && is_array($data['financial'])
+            ? AvailabilityFinancial::fromArray($data['financial'])
+            : AvailabilityFinancial::fromLegacyTopLevel([
+                'currency' => $data['currency'] ?? null,
+                'subtotal' => $data['subtotal'] ?? null,
+                'cleaning_fee' => $data['cleaning_fee'] ?? null,
+                'total' => $data['total'] ?? null,
+            ]);
+
+        $property = isset($data['property']) && is_array($data['property'])
+            ? AvailabilityProperty::fromArray($data['property'])
+            : null;
+
+        $specialRatesApplied = [];
+        if (isset($data['special_rates_applied']) && is_array($data['special_rates_applied'])) {
+            foreach (array_values($data['special_rates_applied']) as $row) {
+                if (is_array($row)) {
+                    /** @var array<string, mixed> $row */
+                    $specialRatesApplied[] = SpecialRateApplied::fromArray($row);
+                }
+            }
+        }
 
         return new self(
             available: isset($data['available']) ? (bool) $data['available'] : true,
             propertyUuid: isset($data['property_uuid']) && is_scalar($data['property_uuid']) ? (string) $data['property_uuid'] : null,
-            checkIn: isset($data['check_in']) && is_scalar($data['check_in']) ? (string) $data['check_in'] : null,
-            checkOut: isset($data['check_out']) && is_scalar($data['check_out']) ? (string) $data['check_out'] : null,
-            nights: is_numeric($nights) ? (int) $nights : null,
-            currency: isset($data['currency']) && is_scalar($data['currency']) ? (string) $data['currency'] : null,
-            subtotal: $resolvedSubtotal,
-            cleaningFee: $resolvedCleaningFee,
-            total: $resolvedTotal,
+            bookingDates: $bookingDates,
+            financial: $financial,
+            property: $property,
+            specialRatesApplied: $specialRatesApplied,
             breakdown: $breakdown,
         );
     }

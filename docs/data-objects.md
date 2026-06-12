@@ -10,9 +10,10 @@ the `Maat\Waffarha\Data` namespace, are `final readonly`, and expose a static
 > (`plimit`, ids) and booleans are typed as such.
 >
 > **Exception:** the calendar / availability-check DTOs (`UnitCalendarDay`,
-> `AvailabilityCheck`, `AvailabilityNight`) expose monetary values
-> (`price`, `subtotal`, `cleaningFee`, `total`) as `?float` because Maat
-> returns those values as JSON numbers rounded server-side to 2 decimals.
+> `AvailabilityCheck`, `AvailabilityFinancial`, `AvailabilityNight`)
+> expose monetary values (`price`, `subtotal`, `cleaningFee`, `total`,
+> `commissionAmount`, …) as `?float` because Maat returns those values as
+> JSON numbers rounded server-side to 2 decimals.
 
 ## Returned by `units()->list()`
 
@@ -270,26 +271,126 @@ on the happy path; an unavailable date range surfaces as a `WaffarhaRequestExcep
 | `checkOut` | `?string` | `check_out` |
 | `nights` | `?int` | `nights` |
 | `currency` | `?string` | `currency` |
-| `subtotal` | `?float` | `subtotal` — sum of nightly prices (EGP, rounded to 2 decimals) |
-| `cleaningFee` | `?float` | `cleaning_fee` — one-time per-booking cleaning fee (EGP). `0.0` when the host has not configured one; `null` only on older API responses that omitted the field |
-| `total` | `?float` | `total` — `subtotal + cleaning_fee`. Falls back to `subtotal + (cleaning_fee ?? 0)` for older API responses that did not send `total` |
+| `bookingDates` | `BookingDates` | `booking_dates` block (see below) |
+| `financial` | `AvailabilityFinancial` | `financial` block (see below) |
+| `property` | `?AvailabilityProperty` | `property` block — compact unit snapshot |
+| `specialRatesApplied` | `list<SpecialRateApplied>` | `special_rates_applied` — one entry per distinct rate that hit ≥ 1 night |
 | `breakdown` | `list<AvailabilityNight>` | `breakdown` rows |
+
+For ergonomics + IDE autocomplete the most-used fields from the sub-blocks
+are also mirrored as top-level read-only properties:
+
+- from `$bookingDates`: `checkIn`, `checkOut`, `nights` (= `totalDays`)
+- from `$financial`: `currency`, `subtotal`, `cleaningFee`, `total`,
+  `commissionPercentage`, `commissionAmount`
 
 Methods: `count()`, `getIterator()`.
 
+### BookingDates
+
+Date summary returned inside `AvailabilityCheck::$bookingDates`.
+
+| Property | Type | Source key |
+|----------|------|-----------|
+| `checkIn` | `?string` | `check_in` — canonical `Y-m-d` |
+| `checkOut` | `?string` | `check_out` — canonical `Y-m-d` |
+| `totalDays` | `?int` | `total_days` — same as `count($check)` |
+| `normalDays` | `?int` | `normal_days` — non-weekend nights. `null` on legacy responses that didn't send the split |
+| `weekendDays` | `?int` | `weekend_days` — weekend nights. `null` on legacy responses |
+
+`normalDays + weekendDays === totalDays` whenever both are non-null.
+
+### AvailabilityFinancial
+
+Money block returned inside `AvailabilityCheck::$financial`. All amounts are
+in `$currency` (always `"EGP"` today).
+
+| Property | Type | Source key |
+|----------|------|-----------|
+| `currency` | `?string` | `currency` |
+| `subtotal` | `?float` | `subtotal` — sum of nightly prices (EGP, rounded to 2 decimals) |
+| `cleaningFee` | `?float` | `cleaning_fee` — one-time per-booking cleaning fee (EGP). `0.0` when the host has not configured one; `null` only on older API responses that omitted the field |
+| `commissionPercentage` | `?float` | `commission_percentage` — Maat's platform commission rate from `tbl_setting.commission` (e.g. `1.00` = 1%). `null` on older responses |
+| `commissionAmount` | `?float` | `commission_amount` — `subtotal × commission_percentage / 100`, rounded to 2 decimals. Informational only — not added to `total` |
+| `total` | `?float` | `total` — `subtotal + cleaning_fee`. Falls back to `subtotal + (cleaning_fee ?? 0)` for older API responses that did not send `total` |
+
+### AvailabilityProperty
+
+Compact unit snapshot returned inside `AvailabilityCheck::$property`. Carries
+just enough fields for a confirmation card; for the full property detail
+call `units()->show($uuid)`.
+
+| Property | Type | Source key |
+|----------|------|-----------|
+| `uuid` | `?string` | `uuid` — Maat's public identifier; the numeric `id` is never exposed |
+| `title` | `?string` | `title` |
+| `image` | `?string` | `image` — absolute URL to the primary cover image |
+| `address` | `?string` | `address` |
+| `city` | `?string` | `city` |
+| `beds` | `?int` | `beds` |
+| `bathroom` | `?int` | `bathroom` |
+
 ### AvailabilityNight
 
-A single row inside `AvailabilityCheck::$breakdown`.
+A single row inside `AvailabilityCheck::$breakdown`. Mirrors the rich
+`day_breakdown` produced by Maat's internal pricing pipeline so partners
+can render the same UI as a direct Maat checkout. All amounts are in EGP
+(matching `AvailabilityFinancial::$currency`).
+
+The price math is:
+
+```
+price = price_after_special_rate + weekend_amount
+```
 
 | Property | Type | Source key |
 |----------|------|-----------|
 | `date` | `?string` | `date` |
-| `price` | `?float` | `price` |
+| `dayNameEnglish` | `?string` | `day_name_english` (e.g. `"Wednesday"`) |
+| `dayNameArabic` | `?string` | `day_name_arabic` (e.g. `"الأربعاء"`) |
 | `isWeekend` | `?bool` | `is_weekend` |
+| `basePrice` | `?float` | `base_price` — the property's nightly base in EGP, before any rate/surcharge |
+| `priceAfterSpecialRate` | `?float` | `price_after_special_rate` — base price after the active SpecialRate (if any) |
+| `price` | `?float` | `price` — final nightly charge for this date |
 | `hasSpecialRate` | `?bool` | `has_special_rate` |
-| `attributes` | `array<string,mixed>` | full decoded row |
+| `specialRateId` | `?int` | `special_rate_id` |
+| `specialRateName` | `?string` | `special_rate_name` |
+| `specialRatePercentage` | `?float` | `special_rate_percentage` — raw `nightly_price_override` (e.g. `20` = 20%) |
+| `specialRateIsIncrease` | `?bool` | `special_rate_is_increase` |
+| `isDiscount` | `?bool` | `is_discount` — `true` when the special rate brought the price below base |
+| `isPremium` | `?bool` | `is_premium` — `true` when the special rate brought the price above base |
+| `discountPercentage` | `?float` | `discount_percentage` — computed off the base price |
+| `increasePercentage` | `?float` | `increase_percentage` — computed off the base price |
+| `weekendPercentage` | `?float` | `weekend_percentage` — only set when the night was uplifted by the property's weekend rule |
+| `weekendAmount` | `?float` | `weekend_amount` — EGP added on top of `price_after_special_rate` for the weekend uplift |
+| `attributes` | `array<string,mixed>` | full decoded row (forward-compat escape hatch) |
+
+> Per-night `commission` is intentionally **not** exposed — commission is
+> only surfaced at the trip level under `AvailabilityFinancial::$commissionAmount`.
 
 Methods: `toArray()`.
+
+### SpecialRateApplied
+
+A single entry inside `AvailabilityCheck::$specialRatesApplied`. Represents
+one distinct host-configured SpecialRate that affected at least one night
+in the booking window. All monetary values are in EGP. Dollar equivalents
+are intentionally **not** exposed on the Waffarha surface.
+
+| Property | Type | Source key |
+|----------|------|-----------|
+| `id` | `?int` | `id` |
+| `name` | `?string` | `name` |
+| `startDate` | `?string` | `start_date` — rate's configured start, not the booking's check-in |
+| `endDate` | `?string` | `end_date` |
+| `nightlyPriceOverride` | `?float` | `nightly_price_override` — raw stored percentage (e.g. `20` means 20%) |
+| `effectiveNightlyPrice` | `?float` | `effective_nightly_price` — EGP, base price after the rate is applied |
+| `basePrice` | `?float` | `base_price` — EGP, property's nightly base before the rate |
+| `isIncrease` | `?bool` | `is_increase` — `true` for premium pricing |
+| `isDiscount` | `?bool` | `is_discount` — `true` when the rate pulled the price below base |
+| `isPremium` | `?bool` | `is_premium` — `true` when the rate pushed the price above base |
+| `discountPercentage` | `?float` | `discount_percentage` — computed off `base_price` |
+| `increasePercentage` | `?float` | `increase_percentage` — computed off `base_price` |
 
 ## Returned by `bookings()->*`
 
