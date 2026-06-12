@@ -311,8 +311,8 @@ in `$currency` (always `"EGP"` today).
 | `subtotal` | `?float` | `subtotal` — sum of nightly prices (EGP, rounded to 2 decimals) |
 | `cleaningFee` | `?float` | `cleaning_fee` — one-time per-booking cleaning fee (EGP). `0.0` when the host has not configured one; `null` only on older API responses that omitted the field |
 | `commissionPercentage` | `?float` | `commission_percentage` — Maat's platform commission rate from `tbl_setting.commission` (e.g. `1.00` = 1%). `null` on older responses |
-| `commissionAmount` | `?float` | `commission_amount` — `subtotal × commission_percentage / 100`, rounded to 2 decimals. Included in `total` |
-| `total` | `?float` | `total` — `subtotal + cleaning_fee + commission_amount`. Falls back to `subtotal + (cleaning_fee ?? 0) + (commission_amount ?? 0)` for older API responses that did not send `total` |
+| `commissionAmount` | `?float` | `commission_amount` — `subtotal × commission_percentage / 100`, rounded to 2 decimals. **Not** added to `total` — reported separately so partners can reconcile against Maat's host payouts (same convention as `v1/u_simulate_booking`) |
+| `total` | `?float` | `total` — `subtotal + cleaning_fee`. Falls back to `subtotal + (cleaning_fee ?? 0)` for older API responses that did not send `total` |
 
 ### AvailabilityProperty
 
@@ -430,12 +430,30 @@ Methods: `count()`, `getIterator()`, `toArray(): array` (raw rows).
 | `status` | `?string` | `status` |
 | `cancellationReason` | `?string` | `cancellation_reason` |
 | `notes` | `?string` | `notes` |
+| `financial` | `?BookingFinancial` | `financial` (block — see below) |
 | `guest` | `?Guest` | `guest` |
 | `createdAt` | `?string` | `created_at` |
 | `updatedAt` | `?string` | `updated_at` |
 | `attributes` | `array<string,mixed>` | full decoded payload |
 
 Methods: `get(string $key, mixed $default = null)`, `toArray()`.
+
+### BookingFinancial
+
+Nested under `Booking::$financial`. Mirrors exactly what Maat persisted on
+`tbl_book` after running the server-side pricing pipeline — these numbers
+(not the partner-sent `total_amount`) are the source of truth for partner
+reconciliation and host payouts. All monetary values are floats in EGP.
+
+| Property | Type | Source key | Notes |
+|----------|------|-----------|-------|
+| `currency` | `string` | `currency` | Always `"EGP"`. |
+| `subtotal` | `float` | `subtotal` | Sum of every night's `price` from `units()->checkAvailability()`. |
+| `cleaningFee` | `float` | `cleaning_fee` | `tbl_property.cleaning_fee` in EGP — one-time, commission-free. |
+| `total` | `float` | `total` | `subtotal + cleaning_fee` — what the partner is billed. Commission is **not** added (same as `/v1/u_simulate_booking`). |
+| `commissionPerDay` | `float` | `commission_per_day` | `total_commission / total_days` — mirrors `tbl_book.commission` for legacy reports. |
+| `totalCommission` | `float` | `total_commission` | `subtotal × commission_percentage / 100`. |
+| `netAmount` | `?float` | `net_amount` | `subtotal − total_commission + cleaning_fee` — what Maat owes the host. Nullable for legacy bookings created before the financials refactor. |
 
 ### Guest
 

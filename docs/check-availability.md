@@ -58,7 +58,7 @@ window during which somebody else might book the same dates).
     "cleaning_fee": 250.00,
     "commission_percentage": 1.00,
     "commission_amount": 45.00,
-    "total": 4795.00
+    "total": 4750.00
   },
   "special_rates_applied": [
     {
@@ -151,14 +151,17 @@ All money fields live under the `financial` block:
 - `cleaning_fee` is a **one-time** charge per booking (not per night),
   already converted to EGP. It is `0` when the host has not configured a
   cleaning fee for the unit.
+- `total` = `subtotal + cleaning_fee` — this is the headline number the
+  partner should display to the guest and is the figure the subsequent
+  [`bookings()->create()`](create-booking.md) call expects.
 - `commission_percentage` is Maat's platform commission rate (read from
   `tbl_setting.commission`, e.g. `1.00` means 1%).
 - `commission_amount` is the calculated commission applied to `subtotal`
   (cleaning fee is commission-free, mirroring the booking flow).
-- `total` = `subtotal + cleaning_fee + commission_amount` — this is the
-  headline number the partner should display to the guest and is the
-  figure the subsequent [`bookings()->create()`](create-booking.md) call
-  expects.
+  Commission is reported separately and **not** added to `total` — same
+  convention as `POST /v1/u_simulate_booking` on the regular Maat surface.
+  It is exposed so partners can reconcile their share with Maat's host
+  payouts.
 
 ## Response — `409 Conflict` (unavailable)
 
@@ -216,7 +219,7 @@ try {
 > booking flow, in EGP — it will match the sum of the per-night prices you'd
 > read from [`calendar()`](unit-calendar.md) for the same nights. The
 > `cleaning_fee` mirrors `tbl_property.cleaning_fee` (converted to EGP),
-> `commission_*` mirrors `tbl_setting.commission` (applied to `subtotal`),
-> and `total = subtotal + cleaning_fee + commission_amount` is the figure
-> to send as `total_amount` in
-> [`bookings()->create()`](create-booking.md).
+> and `total = subtotal + cleaning_fee` is the figure to send as
+> `total_amount` in [`bookings()->create()`](create-booking.md).
+> `commission_*` mirrors `tbl_setting.commission` (applied to `subtotal`)
+> and is reported separately — same convention as `v1/u_simulate_booking`.

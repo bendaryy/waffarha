@@ -43,6 +43,7 @@ final readonly class Booking
         public ?string $status,
         public ?string $cancellationReason,
         public ?string $notes,
+        public ?BookingFinancial $financial,
         public ?Guest $guest,
         public ?string $createdAt,
         public ?string $updatedAt,
@@ -68,6 +69,10 @@ final readonly class Booking
             ? Guest::fromArray($data['guest'])
             : null;
 
+        $financial = isset($data['financial']) && is_array($data['financial'])
+            ? BookingFinancial::fromArray($data['financial'])
+            : null;
+
         return new self(
             uuid: $uuid !== null && is_scalar($uuid) ? (string) $uuid : null,
             providerBookingId: $str('provider_booking_id'),
@@ -82,6 +87,7 @@ final readonly class Booking
             status: $str('status'),
             cancellationReason: $str('cancellation_reason'),
             notes: $str('notes'),
+            financial: $financial,
             guest: $guest,
             createdAt: $str('created_at'),
             updatedAt: $str('updated_at'),

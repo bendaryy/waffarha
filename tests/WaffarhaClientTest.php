@@ -489,7 +489,7 @@ class WaffarhaClientTest extends TestCase
                     'cleaning_fee' => 250.00,
                     'commission_percentage' => 1.00,
                     'commission_amount' => 45.00,
-                    'total' => 4795.00,
+                    'total' => 4750.00,
                 ],
                 'special_rates_applied' => [
                     [
@@ -592,7 +592,7 @@ class WaffarhaClientTest extends TestCase
         $this->assertSame('EGP', $check->currency);
         $this->assertSame(4500.00, $check->subtotal);
         $this->assertSame(250.00, $check->cleaningFee);
-        $this->assertSame(4795.00, $check->total);
+        $this->assertSame(4750.00, $check->total);
         $this->assertSame(1.00, $check->commissionPercentage);
         $this->assertSame(45.00, $check->commissionAmount);
         $this->assertSame('EGP', $check->financial->currency);
@@ -671,7 +671,7 @@ class WaffarhaClientTest extends TestCase
         $this->assertSame([], $check->specialRatesApplied);
     }
 
-    public function test_check_availability_financial_total_falls_back_to_subtotal_plus_cleaning_plus_commission(): void
+    public function test_check_availability_financial_total_fallback_excludes_commission(): void
     {
         $this->fakeToken();
         Http::fake([
@@ -688,7 +688,9 @@ class WaffarhaClientTest extends TestCase
                     'cleaning_fee' => 250.00,
                     'commission_percentage' => 1.00,
                     'commission_amount' => 15.00,
-                    // `total` intentionally omitted so the SDK has to derive it.
+                    // `total` intentionally omitted so the SDK has to derive it —
+                    // commission must NOT be folded in (same convention as
+                    // v1/u_simulate_booking).
                 ],
                 'breakdown' => [
                     ['date' => '2026-08-12', 'price' => 1500.00],
@@ -700,8 +702,9 @@ class WaffarhaClientTest extends TestCase
             ->units()
             ->checkAvailability('u-1', ['check_in' => '2026-08-12', 'check_out' => '2026-08-13']);
 
-        $this->assertSame(1765.00, $check->total);
-        $this->assertSame(1765.00, $check->financial->total);
+        $this->assertSame(1750.00, $check->total);
+        $this->assertSame(1750.00, $check->financial->total);
+        $this->assertSame(15.00, $check->commissionAmount);
     }
 
     public function test_check_availability_throws_a_typed_request_exception_on_409(): void
