@@ -489,7 +489,7 @@ class WaffarhaClientTest extends TestCase
                     'cleaning_fee' => 250.00,
                     'commission_percentage' => 1.00,
                     'commission_amount' => 45.00,
-                    'total' => 4750.00,
+                    'total' => 4795.00,
                 ],
                 'special_rates_applied' => [
                     [
@@ -592,7 +592,7 @@ class WaffarhaClientTest extends TestCase
         $this->assertSame('EGP', $check->currency);
         $this->assertSame(4500.00, $check->subtotal);
         $this->assertSame(250.00, $check->cleaningFee);
-        $this->assertSame(4750.00, $check->total);
+        $this->assertSame(4795.00, $check->total);
         $this->assertSame(1.00, $check->commissionPercentage);
         $this->assertSame(45.00, $check->commissionAmount);
         $this->assertSame('EGP', $check->financial->currency);
@@ -669,6 +669,39 @@ class WaffarhaClientTest extends TestCase
         $this->assertNull($check->bookingDates->normalDays);
         $this->assertNull($check->bookingDates->weekendDays);
         $this->assertSame([], $check->specialRatesApplied);
+    }
+
+    public function test_check_availability_financial_total_falls_back_to_subtotal_plus_cleaning_plus_commission(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/unit/u-1/check' => Http::response([
+                'available' => true,
+                'property_uuid' => 'u-1',
+                'booking_dates' => [
+                    'check_in' => '2026-08-12', 'check_out' => '2026-08-13',
+                    'total_days' => 1, 'normal_days' => 1, 'weekend_days' => 0,
+                ],
+                'financial' => [
+                    'currency' => 'EGP',
+                    'subtotal' => 1500.00,
+                    'cleaning_fee' => 250.00,
+                    'commission_percentage' => 1.00,
+                    'commission_amount' => 15.00,
+                    // `total` intentionally omitted so the SDK has to derive it.
+                ],
+                'breakdown' => [
+                    ['date' => '2026-08-12', 'price' => 1500.00],
+                ],
+            ]),
+        ]);
+
+        $check = $this->app->make(WaffarhaClient::class)
+            ->units()
+            ->checkAvailability('u-1', ['check_in' => '2026-08-12', 'check_out' => '2026-08-13']);
+
+        $this->assertSame(1765.00, $check->total);
+        $this->assertSame(1765.00, $check->financial->total);
     }
 
     public function test_check_availability_throws_a_typed_request_exception_on_409(): void

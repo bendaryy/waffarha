@@ -311,8 +311,8 @@ in `$currency` (always `"EGP"` today).
 | `subtotal` | `?float` | `subtotal` — sum of nightly prices (EGP, rounded to 2 decimals) |
 | `cleaningFee` | `?float` | `cleaning_fee` — one-time per-booking cleaning fee (EGP). `0.0` when the host has not configured one; `null` only on older API responses that omitted the field |
 | `commissionPercentage` | `?float` | `commission_percentage` — Maat's platform commission rate from `tbl_setting.commission` (e.g. `1.00` = 1%). `null` on older responses |
-| `commissionAmount` | `?float` | `commission_amount` — `subtotal × commission_percentage / 100`, rounded to 2 decimals. Informational only — not added to `total` |
-| `total` | `?float` | `total` — `subtotal + cleaning_fee`. Falls back to `subtotal + (cleaning_fee ?? 0)` for older API responses that did not send `total` |
+| `commissionAmount` | `?float` | `commission_amount` — `subtotal × commission_percentage / 100`, rounded to 2 decimals. Included in `total` |
+| `total` | `?float` | `total` — `subtotal + cleaning_fee + commission_amount`. Falls back to `subtotal + (cleaning_fee ?? 0) + (commission_amount ?? 0)` for older API responses that did not send `total` |
 
 ### AvailabilityProperty
 

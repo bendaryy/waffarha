@@ -11,15 +11,13 @@ namespace Maat\Waffarha\Data;
  *  - `$subtotal` is the nightly sum (already in `$currency`).
  *  - `$cleaningFee` is the one-time per-booking cleaning fee (`0.0` when the
  *    host has not configured one).
- *  - `$total` = `$subtotal + $cleaningFee` — this is the headline figure the
- *    partner should display to the guest and send back as `total_amount` on
- *    {@see \Maat\Waffarha\Resources\Bookings::create()}.
  *  - `$commissionPercentage` mirrors `tbl_setting.commission` (e.g. `1.00`
  *    means 1%), and `$commissionAmount` is the calculated amount applied to
- *    the nightly subtotal. Commission is **informational** — Waffarha is the
- *    merchant of record on this surface, so the figure is **not** added to
- *    `$total`. It is exposed so partners can reconcile their share with
- *    Maat's host payouts.
+ *    the nightly subtotal (cleaning fee is commission-free).
+ *  - `$total` = `$subtotal + $cleaningFee + $commissionAmount` — this is
+ *    the headline figure the partner should display to the guest and send
+ *    back as `total_amount` on
+ *    {@see \Maat\Waffarha\Resources\Bookings::create()}.
  *
  * @phpstan-type FinancialPayload array{currency?: string|null, subtotal?: int|float|string|null, cleaning_fee?: int|float|string|null, commission_percentage?: int|float|string|null, commission_amount?: int|float|string|null, total?: int|float|string|null}
  */
@@ -41,6 +39,7 @@ final readonly class AvailabilityFinancial
     {
         $subtotal = self::nullableFloat($data['subtotal'] ?? null);
         $cleaningFee = self::nullableFloat($data['cleaning_fee'] ?? null);
+        $commissionAmount = self::nullableFloat($data['commission_amount'] ?? null);
         $total = self::nullableFloat($data['total'] ?? null);
 
         return new self(
@@ -48,10 +47,13 @@ final readonly class AvailabilityFinancial
             subtotal: $subtotal,
             cleaningFee: $cleaningFee,
             commissionPercentage: self::nullableFloat($data['commission_percentage'] ?? null),
-            commissionAmount: self::nullableFloat($data['commission_amount'] ?? null),
-            // Fall back to subtotal + cleaning_fee when the API omits `total`
-            // so older Maat responses still surface a usable headline number.
-            total: $total ?? ($subtotal !== null ? round($subtotal + ($cleaningFee ?? 0.0), 2) : null),
+            commissionAmount: $commissionAmount,
+            // Fall back to `subtotal + cleaning_fee + commission_amount` when
+            // the API omits `total` so older Maat responses still surface a
+            // usable headline number.
+            total: $total ?? ($subtotal !== null
+                ? round($subtotal + ($cleaningFee ?? 0.0) + ($commissionAmount ?? 0.0), 2)
+                : null),
         );
     }
 

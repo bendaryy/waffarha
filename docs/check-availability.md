@@ -58,7 +58,7 @@ window during which somebody else might book the same dates).
     "cleaning_fee": 250.00,
     "commission_percentage": 1.00,
     "commission_amount": 45.00,
-    "total": 4750.00
+    "total": 4795.00
   },
   "special_rates_applied": [
     {
@@ -155,14 +155,10 @@ All money fields live under the `financial` block:
   `tbl_setting.commission`, e.g. `1.00` means 1%).
 - `commission_amount` is the calculated commission applied to `subtotal`
   (cleaning fee is commission-free, mirroring the booking flow).
-- `total` = `subtotal + cleaning_fee` — this is the headline number the
-  partner should display to the guest and is the figure the subsequent
-  [`bookings()->create()`](create-booking.md) call expects.
-
-> **Commission is informational.** Waffarha is the merchant of record on
-> this surface, so `commission_amount` is **not** added to `total` — it is
-> exposed purely so partners can reconcile their share with Maat's host
-> payouts.
+- `total` = `subtotal + cleaning_fee + commission_amount` — this is the
+  headline number the partner should display to the guest and is the
+  figure the subsequent [`bookings()->create()`](create-booking.md) call
+  expects.
 
 ## Response — `409 Conflict` (unavailable)
 
@@ -219,8 +215,8 @@ try {
 > `base price → SpecialRate → weekend percentage` pipeline as the real
 > booking flow, in EGP — it will match the sum of the per-night prices you'd
 > read from [`calendar()`](unit-calendar.md) for the same nights. The
-> `cleaning_fee` mirrors `tbl_property.cleaning_fee` (converted to EGP), and
-> `total` is the figure to send as `total_amount` in
-> [`bookings()->create()`](create-booking.md). `commission_*` mirrors what
-> Maat would deduct from a regular booking on the same unit so partners can
-> reconcile payouts without a separate API call.
+> `cleaning_fee` mirrors `tbl_property.cleaning_fee` (converted to EGP),
+> `commission_*` mirrors `tbl_setting.commission` (applied to `subtotal`),
+> and `total = subtotal + cleaning_fee + commission_amount` is the figure
+> to send as `total_amount` in
+> [`bookings()->create()`](create-booking.md).
