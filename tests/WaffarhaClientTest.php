@@ -472,6 +472,8 @@ class WaffarhaClientTest extends TestCase
                 'nights' => 3,
                 'currency' => 'EGP',
                 'subtotal' => 4500.00,
+                'cleaning_fee' => 250.00,
+                'total' => 4750.00,
                 'breakdown' => [
                     ['date' => '2026-08-12', 'price' => 1500.00, 'is_weekend' => false, 'has_special_rate' => false],
                     ['date' => '2026-08-13', 'price' => 1500.00, 'is_weekend' => false, 'has_special_rate' => false],
@@ -496,6 +498,8 @@ class WaffarhaClientTest extends TestCase
         $this->assertSame(3, $check->nights);
         $this->assertSame('EGP', $check->currency);
         $this->assertSame(4500.00, $check->subtotal);
+        $this->assertSame(250.00, $check->cleaningFee);
+        $this->assertSame(4750.00, $check->total);
         $this->assertCount(3, $check);
         $this->assertSame(1500.00, $check->breakdown[0]->price);
         $this->assertTrue($check->breakdown[2]->isWeekend);
@@ -505,6 +509,33 @@ class WaffarhaClientTest extends TestCase
             && $request['check_in'] === '2026-08-12'
             && $request['check_out'] === '2026-08-15'
             && $request['guests_count'] === 2);
+    }
+
+    public function test_check_availability_falls_back_to_subtotal_when_api_omits_cleaning_fee_and_total(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/unit/u-1/check' => Http::response([
+                'available' => true,
+                'property_uuid' => 'u-1',
+                'check_in' => '2026-08-12',
+                'check_out' => '2026-08-13',
+                'nights' => 1,
+                'currency' => 'EGP',
+                'subtotal' => 1500.00,
+                'breakdown' => [
+                    ['date' => '2026-08-12', 'price' => 1500.00, 'is_weekend' => false, 'has_special_rate' => false],
+                ],
+            ]),
+        ]);
+
+        $check = $this->app->make(WaffarhaClient::class)
+            ->units()
+            ->checkAvailability('u-1', ['check_in' => '2026-08-12', 'check_out' => '2026-08-13']);
+
+        $this->assertSame(1500.00, $check->subtotal);
+        $this->assertNull($check->cleaningFee);
+        $this->assertSame(1500.00, $check->total);
     }
 
     public function test_check_availability_throws_a_typed_request_exception_on_409(): void

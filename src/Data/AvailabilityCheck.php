@@ -25,7 +25,12 @@ use Traversable;
  *
  * @implements IteratorAggregate<int, AvailabilityNight>
  *
- * @phpstan-type AvailabilityPayload array{available?: bool|int|string|null, property_uuid?: string|null, check_in?: string|null, check_out?: string|null, nights?: int|string|null, currency?: string|null, subtotal?: int|float|string|null, breakdown?: list<array<string, mixed>>}
+ * `$subtotal` is the nightly sum (before the one-time cleaning fee).
+ * `$cleaningFee` is the one-time, per-booking cleaning fee charged on top
+ * (already converted to EGP). `$total` = `$subtotal + $cleaningFee` — this
+ * is the headline number partners should display to the guest.
+ *
+ * @phpstan-type AvailabilityPayload array{available?: bool|int|string|null, property_uuid?: string|null, check_in?: string|null, check_out?: string|null, nights?: int|string|null, currency?: string|null, subtotal?: int|float|string|null, cleaning_fee?: int|float|string|null, total?: int|float|string|null, breakdown?: list<array<string, mixed>>}
  */
 final readonly class AvailabilityCheck implements Countable, IteratorAggregate
 {
@@ -40,6 +45,8 @@ final readonly class AvailabilityCheck implements Countable, IteratorAggregate
         public ?int $nights,
         public ?string $currency,
         public ?float $subtotal,
+        public ?float $cleaningFee,
+        public ?float $total,
         public array $breakdown,
     ) {}
 
@@ -59,7 +66,19 @@ final readonly class AvailabilityCheck implements Countable, IteratorAggregate
         }
 
         $subtotal = $data['subtotal'] ?? null;
+        $cleaningFee = $data['cleaning_fee'] ?? null;
+        $total = $data['total'] ?? null;
         $nights = $data['nights'] ?? null;
+
+        $resolvedSubtotal = is_numeric($subtotal) ? (float) $subtotal : null;
+        $resolvedCleaningFee = is_numeric($cleaningFee) ? (float) $cleaningFee : null;
+        // Fall back to `subtotal + cleaning_fee` so older API responses (which
+        // omit `total`) still surface a usable headline number for partners.
+        $resolvedTotal = is_numeric($total)
+            ? (float) $total
+            : ($resolvedSubtotal !== null
+                ? round($resolvedSubtotal + ($resolvedCleaningFee ?? 0.0), 2)
+                : null);
 
         return new self(
             available: isset($data['available']) ? (bool) $data['available'] : true,
@@ -68,7 +87,9 @@ final readonly class AvailabilityCheck implements Countable, IteratorAggregate
             checkOut: isset($data['check_out']) && is_scalar($data['check_out']) ? (string) $data['check_out'] : null,
             nights: is_numeric($nights) ? (int) $nights : null,
             currency: isset($data['currency']) && is_scalar($data['currency']) ? (string) $data['currency'] : null,
-            subtotal: is_numeric($subtotal) ? (float) $subtotal : null,
+            subtotal: $resolvedSubtotal,
+            cleaningFee: $resolvedCleaningFee,
+            total: $resolvedTotal,
             breakdown: $breakdown,
         );
     }

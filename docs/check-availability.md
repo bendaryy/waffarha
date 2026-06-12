@@ -41,6 +41,8 @@ window during which somebody else might book the same dates).
   "nights": 3,
   "currency": "EGP",
   "subtotal": 4500.00,
+  "cleaning_fee": 250.00,
+  "total": 4750.00,
   "breakdown": [
     { "date": "2026-08-12", "price": 1500.00, "is_weekend": false, "has_special_rate": false },
     { "date": "2026-08-13", "price": 1500.00, "is_weekend": false, "has_special_rate": false },
@@ -48,6 +50,14 @@ window during which somebody else might book the same dates).
   ]
 }
 ```
+
+- `subtotal` is the sum of the per-night `price` values in `breakdown`.
+- `cleaning_fee` is a **one-time** charge per booking (not per night),
+  already converted to EGP. It is `0` when the host has not configured a
+  cleaning fee for the unit.
+- `total` = `subtotal + cleaning_fee` — this is the headline number the
+  partner should display to the guest and is the figure the subsequent
+  [`bookings()->create()`](create-booking.md) call expects.
 
 ## Response — `409 Conflict` (unavailable)
 
@@ -85,7 +95,8 @@ try {
         ],
     );
 
-    echo "Subtotal: {$check->subtotal} {$check->currency} over {$check->nights} nights\n";
+    echo "Total: {$check->total} {$check->currency} over {$check->nights} nights";
+    echo " (subtotal {$check->subtotal} + cleaning fee {$check->cleaningFee})\n";
     foreach ($check as $night) {
         echo "{$night->date}: {$night->price}\n";
     }
@@ -98,8 +109,10 @@ try {
 }
 ```
 
-> **Pricing parity.** The subtotal is computed using the same
+> **Pricing parity.** The nightly `subtotal` is computed using the same
 > `base price → SpecialRate → weekend percentage` pipeline as the real
-> booking flow, in EGP. It will match the `total_amount` you'd compute
-> client-side from the [`calendar()`](unit-calendar.md) prices for the same
-> nights.
+> booking flow, in EGP — it will match the sum of the per-night prices you'd
+> read from [`calendar()`](unit-calendar.md) for the same nights. The
+> `cleaning_fee` mirrors `tbl_property.cleaning_fee` (converted to EGP), and
+> `total` is the figure to send as `total_amount` in
+> [`bookings()->create()`](create-booking.md).

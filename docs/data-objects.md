@@ -10,9 +10,9 @@ the `Maat\Waffarha\Data` namespace, are `final readonly`, and expose a static
 > (`plimit`, ids) and booleans are typed as such.
 >
 > **Exception:** the calendar / availability-check DTOs (`UnitCalendarDay`,
-> `AvailabilityCheck`, `AvailabilityNight`) expose `price` / `subtotal` as
-> `?float` because Maat returns those values as JSON numbers rounded
-> server-side to 2 decimals.
+> `AvailabilityCheck`, `AvailabilityNight`) expose monetary values
+> (`price`, `subtotal`, `cleaningFee`, `total`) as `?float` because Maat
+> returns those values as JSON numbers rounded server-side to 2 decimals.
 
 ## Returned by `units()->list()`
 
@@ -270,7 +270,9 @@ on the happy path; an unavailable date range surfaces as a `WaffarhaRequestExcep
 | `checkOut` | `?string` | `check_out` |
 | `nights` | `?int` | `nights` |
 | `currency` | `?string` | `currency` |
-| `subtotal` | `?float` | `subtotal` (EGP, rounded to 2 decimals) |
+| `subtotal` | `?float` | `subtotal` — sum of nightly prices (EGP, rounded to 2 decimals) |
+| `cleaningFee` | `?float` | `cleaning_fee` — one-time per-booking cleaning fee (EGP). `0.0` when the host has not configured one; `null` only on older API responses that omitted the field |
+| `total` | `?float` | `total` — `subtotal + cleaning_fee`. Falls back to `subtotal + (cleaning_fee ?? 0)` for older API responses that did not send `total` |
 | `breakdown` | `list<AvailabilityNight>` | `breakdown` rows |
 
 Methods: `count()`, `getIterator()`.
