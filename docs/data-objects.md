@@ -506,13 +506,14 @@ Methods: `count()`, `getIterator()`, `toArray(): array` (raw rows).
 
 ### Payout
 
-A single payout request raised by Maat for one booking. Fields below are
-promoted; the raw decoded payload is always retained.
+A single payout request raised by Maat for one booking. Payouts are
+addressed by their public `uuid` — Maat never exposes its internal
+sequential id outside the perimeter. Fields below are promoted; the raw
+decoded payload is always retained.
 
 | Property | Type | Source key |
 |----------|------|-----------|
-| `id` | `?int` | `id` |
-| `bookingId` | `?int` | `booking.id` |
+| `uuid` | `?string` | `uuid` |
 | `bookingUuid` | `?string` | `booking.uuid` |
 | `amount` | `?float` | `amount` |
 | `currency` | `?string` | `currency` |

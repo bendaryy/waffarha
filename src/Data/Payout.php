@@ -34,8 +34,7 @@ final readonly class Payout
      * @param  array<string, mixed>  $attributes  Full decoded payload for this payout.
      */
     public function __construct(
-        public ?int $id,
-        public ?int $bookingId,
+        public ?string $uuid,
         public ?string $bookingUuid,
         public ?float $amount,
         public ?string $currency,
@@ -70,20 +69,15 @@ final readonly class Payout
         $str = static fn (string $key): ?string => isset($data[$key]) && is_scalar($data[$key])
             ? (string) $data[$key]
             : null;
-        $int = static fn (string $key): ?int => isset($data[$key]) && is_scalar($data[$key])
-            ? (int) $data[$key]
-            : null;
         $float = static fn (string $key): ?float => isset($data[$key]) && is_scalar($data[$key])
             ? (float) $data[$key]
             : null;
 
         $booking = isset($data['booking']) && is_array($data['booking']) ? $data['booking'] : [];
-        $bookingId = isset($booking['id']) && is_scalar($booking['id']) ? (int) $booking['id'] : null;
         $bookingUuid = isset($booking['uuid']) && is_scalar($booking['uuid']) ? (string) $booking['uuid'] : null;
 
         return new self(
-            id: $int('id'),
-            bookingId: $bookingId,
+            uuid: $str('uuid'),
             bookingUuid: $bookingUuid,
             amount: $float('amount'),
             currency: $str('currency'),

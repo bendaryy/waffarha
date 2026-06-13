@@ -14,13 +14,14 @@ use Maat\Waffarha\Exceptions\WaffarhaRequestException;
  *
  * Endpoints exposed today:
  *   - {@see Payouts::list()} — `GET /waffarha/payouts`
- *   - {@see Payouts::get()} — `GET /waffarha/payouts/{id}`
- *   - {@see Payouts::submitProof()} — `POST /waffarha/payouts/{id}/proof`
+ *   - {@see Payouts::get()} — `GET /waffarha/payouts/{uuid}`
+ *   - {@see Payouts::submitProof()} — `POST /waffarha/payouts/{uuid}/proof`
  *
- * Provider scoping is enforced server-side from the OAuth client behind the
- * access token, so the SDK never sends a provider id explicitly — a token
- * issued for one provider can never read or modify another provider's
- * payouts.
+ * Payouts are addressed by their public `uuid` (a UUID v4 string) — the
+ * internal sequential id never leaves Maat. Provider scoping is enforced
+ * server-side from the OAuth client behind the access token, so the SDK
+ * never sends a provider id explicitly — a token issued for one provider
+ * can never read or modify another provider's payouts.
  */
 final class Payouts extends Resource
 {
@@ -45,14 +46,14 @@ final class Payouts extends Resource
     }
 
     /**
-     * Fetch a single payout by its Maat numeric id.
+     * Fetch a single payout by its Maat UUID.
      *
      * @throws WaffarhaRequestException
      */
-    public function get(int $id): Payout
+    public function get(string $uuid): Payout
     {
         return Payout::fromArray(
-            $this->transport->send('GET', "payouts/{$id}")
+            $this->transport->send('GET', "payouts/{$uuid}")
         );
     }
 
@@ -77,7 +78,7 @@ final class Payouts extends Resource
      *
      * @throws WaffarhaRequestException
      */
-    public function submitProof(int $id, string|array $file, ?string $notes = null): Payout
+    public function submitProof(string $uuid, string|array $file, ?string $notes = null): Payout
     {
         if (is_string($file) && trim($file) === '') {
             throw new InvalidArgumentException('Proof file path cannot be empty.');
@@ -87,7 +88,7 @@ final class Payouts extends Resource
 
         return Payout::fromArray(
             $this->transport->sendMultipart(
-                endpoint: "payouts/{$id}/proof",
+                endpoint: "payouts/{$uuid}/proof",
                 fields: $fields,
                 files: ['proof' => $file],
             )

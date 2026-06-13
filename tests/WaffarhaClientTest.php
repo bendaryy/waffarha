@@ -779,8 +779,8 @@ class WaffarhaClientTest extends TestCase
                 'ResponseMsg' => 'Payouts retrieved successfully.',
                 'payouts' => [
                     [
-                        'id' => 1,
-                        'booking' => ['id' => 100, 'uuid' => 'uuid-100'],
+                        'uuid' => '1a2b3c4d-5e6f-7890-abcd-ef1234567890',
+                        'booking' => ['uuid' => 'uuid-100'],
                         'amount' => 4500.00,
                         'currency' => 'EGP',
                         'status' => 'pending',
@@ -808,7 +808,7 @@ class WaffarhaClientTest extends TestCase
 
         $this->assertInstanceOf(PayoutCollection::class, $payouts);
         $this->assertCount(1, $payouts);
-        $this->assertSame(1, $payouts->items[0]->id);
+        $this->assertSame('1a2b3c4d-5e6f-7890-abcd-ef1234567890', $payouts->items[0]->uuid);
         $this->assertSame('uuid-100', $payouts->items[0]->bookingUuid);
         $this->assertSame(4500.0, $payouts->items[0]->amount);
         $this->assertSame('pending', $payouts->items[0]->status);
@@ -823,14 +823,15 @@ class WaffarhaClientTest extends TestCase
     public function test_payouts_get_unwraps_the_payout_envelope(): void
     {
         $this->fakeToken();
+        $uuid = '1a2b3c4d-5e6f-7890-abcd-ef1234567890';
         Http::fake([
-            'maat.test/waffarha/payouts/42' => Http::response([
+            "maat.test/waffarha/payouts/{$uuid}" => Http::response([
                 'ResponseCode' => '200',
                 'Result' => 'true',
                 'ResponseMsg' => 'Payout retrieved successfully.',
                 'payout' => [
-                    'id' => 42,
-                    'booking' => ['id' => 100, 'uuid' => 'uuid-100'],
+                    'uuid' => $uuid,
+                    'booking' => ['uuid' => 'uuid-100'],
                     'amount' => 2500.00,
                     'currency' => 'EGP',
                     'status' => 'proof_submitted',
@@ -843,11 +844,10 @@ class WaffarhaClientTest extends TestCase
         // The single-payout endpoints return `{ "ResponseCode": ..., "payout":
         // { ... } }`. Payout::fromArray() unwraps the `payout` key
         // transparently so consumers get typed properties either way.
-        $payout = $this->app->make(WaffarhaClient::class)->payouts()->get(42);
+        $payout = $this->app->make(WaffarhaClient::class)->payouts()->get($uuid);
 
         $this->assertInstanceOf(Payout::class, $payout);
-        $this->assertSame(42, $payout->id);
-        $this->assertSame(100, $payout->bookingId);
+        $this->assertSame($uuid, $payout->uuid);
         $this->assertSame('uuid-100', $payout->bookingUuid);
         $this->assertSame('proof_submitted', $payout->status);
         $this->assertSame('https://cdn.example/proof.pdf', $payout->proofUrl);
@@ -856,14 +856,15 @@ class WaffarhaClientTest extends TestCase
     public function test_payouts_submit_proof_sends_multipart_request(): void
     {
         $this->fakeToken();
+        $uuid = '1a2b3c4d-5e6f-7890-abcd-ef1234567890';
         Http::fake([
-            'maat.test/waffarha/payouts/42/proof' => Http::response([
+            "maat.test/waffarha/payouts/{$uuid}/proof" => Http::response([
                 'ResponseCode' => '200',
                 'Result' => 'true',
                 'ResponseMsg' => 'Proof uploaded successfully.',
                 'payout' => [
-                    'id' => 42,
-                    'booking' => ['id' => 100, 'uuid' => 'uuid-100'],
+                    'uuid' => $uuid,
+                    'booking' => ['uuid' => 'uuid-100'],
                     'amount' => 2500.00,
                     'currency' => 'EGP',
                     'status' => 'proof_submitted',
@@ -881,16 +882,16 @@ class WaffarhaClientTest extends TestCase
         try {
             $payout = $this->app->make(WaffarhaClient::class)
                 ->payouts()
-                ->submitProof(42, $tmp, 'WAF-#1278');
+                ->submitProof($uuid, $tmp, 'WAF-#1278');
 
             $this->assertSame('proof_submitted', $payout->status);
             $this->assertSame('https://cdn.example/proof.pdf', $payout->proofUrl);
 
-            Http::assertSent(static function ($request): bool {
+            Http::assertSent(static function ($request) use ($uuid): bool {
                 $contentType = $request->header('Content-Type')[0] ?? '';
                 $body = (string) $request->body();
 
-                return str_contains((string) $request->url(), 'waffarha/payouts/42/proof')
+                return str_contains((string) $request->url(), "waffarha/payouts/{$uuid}/proof")
                     && str_starts_with($contentType, 'multipart/form-data')
                     && str_contains($body, 'name="proof"')
                     && str_contains($body, 'name="notes"')

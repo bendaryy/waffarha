@@ -250,8 +250,8 @@ class DataTest extends BaseTestCase
     public function test_payout_promotes_fields_and_keeps_booking_envelope(): void
     {
         $payout = Payout::fromArray([
-            'id' => 42,
-            'booking' => ['id' => 12345, 'uuid' => 'b6d0b8d2-9c5e-4f1a-9c2a-7a4b8e3f1a0d'],
+            'uuid' => '1a2b3c4d-5e6f-7890-abcd-ef1234567890',
+            'booking' => ['uuid' => 'b6d0b8d2-9c5e-4f1a-9c2a-7a4b8e3f1a0d'],
             'amount' => 4500.00,
             'currency' => 'EGP',
             'status' => 'proof_submitted',
@@ -267,8 +267,7 @@ class DataTest extends BaseTestCase
             'extra_field' => 'kept',
         ]);
 
-        $this->assertSame(42, $payout->id);
-        $this->assertSame(12345, $payout->bookingId);
+        $this->assertSame('1a2b3c4d-5e6f-7890-abcd-ef1234567890', $payout->uuid);
         $this->assertSame('b6d0b8d2-9c5e-4f1a-9c2a-7a4b8e3f1a0d', $payout->bookingUuid);
         $this->assertSame(4500.0, $payout->amount);
         $this->assertSame('EGP', $payout->currency);
@@ -289,13 +288,12 @@ class DataTest extends BaseTestCase
     public function test_payout_handles_missing_booking_block_gracefully(): void
     {
         $payout = Payout::fromArray([
-            'id' => 7,
+            'uuid' => '11111111-2222-3333-4444-555555555555',
             'amount' => 100.5,
             'status' => 'pending',
         ]);
 
-        $this->assertSame(7, $payout->id);
-        $this->assertNull($payout->bookingId);
+        $this->assertSame('11111111-2222-3333-4444-555555555555', $payout->uuid);
         $this->assertNull($payout->bookingUuid);
         $this->assertSame(100.5, $payout->amount);
         $this->assertSame('pending', $payout->status);
@@ -308,20 +306,19 @@ class DataTest extends BaseTestCase
             'Result' => 'true',
             'ResponseMsg' => 'Payout retrieved successfully.',
             'payout' => [
-                'id' => 99,
-                'booking' => ['id' => 555, 'uuid' => 'uuid-555'],
+                'uuid' => '99999999-aaaa-bbbb-cccc-dddddddddddd',
+                'booking' => ['uuid' => 'uuid-555'],
                 'amount' => 1234.56,
                 'status' => 'completed',
             ],
         ]);
 
-        $this->assertSame(99, $payout->id);
-        $this->assertSame(555, $payout->bookingId);
+        $this->assertSame('99999999-aaaa-bbbb-cccc-dddddddddddd', $payout->uuid);
         $this->assertSame('uuid-555', $payout->bookingUuid);
         $this->assertSame(1234.56, $payout->amount);
         $this->assertSame('completed', $payout->status);
         // The attributes bag holds the unwrapped row, not the envelope.
-        $this->assertSame(99, $payout->attributes['id']);
+        $this->assertSame('99999999-aaaa-bbbb-cccc-dddddddddddd', $payout->attributes['uuid']);
         $this->assertArrayNotHasKey('ResponseCode', $payout->attributes);
     }
 
@@ -329,8 +326,8 @@ class DataTest extends BaseTestCase
     {
         $collection = PayoutCollection::fromArray([
             'payouts' => [
-                ['id' => 1, 'amount' => 100, 'status' => 'pending'],
-                ['id' => 2, 'amount' => 200, 'status' => 'proof_submitted'],
+                ['uuid' => 'uuid-1', 'amount' => 100, 'status' => 'pending'],
+                ['uuid' => 'uuid-2', 'amount' => 200, 'status' => 'proof_submitted'],
             ],
             'pagination' => [
                 'current_page' => 1,
@@ -341,7 +338,7 @@ class DataTest extends BaseTestCase
         ]);
 
         $this->assertCount(2, $collection);
-        $this->assertSame(1, $collection->items[0]->id);
+        $this->assertSame('uuid-1', $collection->items[0]->uuid);
         $this->assertSame('proof_submitted', $collection->items[1]->status);
         $this->assertNotNull($collection->meta);
         $this->assertSame(125, $collection->meta->total);
@@ -350,15 +347,15 @@ class DataTest extends BaseTestCase
     public function test_payout_collection_falls_back_through_envelope_variants(): void
     {
         $fromData = PayoutCollection::fromArray([
-            'data' => [['id' => 5, 'amount' => 50, 'status' => 'completed']],
+            'data' => [['uuid' => 'uuid-5', 'amount' => 50, 'status' => 'completed']],
         ]);
         $this->assertCount(1, $fromData);
-        $this->assertSame(5, $fromData->items[0]->id);
+        $this->assertSame('uuid-5', $fromData->items[0]->uuid);
 
         $fromBareList = PayoutCollection::fromArray([
-            ['id' => 9, 'amount' => 9, 'status' => 'rejected'],
+            ['uuid' => 'uuid-9', 'amount' => 9, 'status' => 'rejected'],
         ]);
         $this->assertCount(1, $fromBareList);
-        $this->assertSame(9, $fromBareList->items[0]->id);
+        $this->assertSame('uuid-9', $fromBareList->items[0]->uuid);
     }
 }

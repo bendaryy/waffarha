@@ -15,13 +15,15 @@ pending ─upload proof──▶ proof_submitted ─admin approves──▶ comp
 issue a brand-new payout for the same booking — you'll just see a fresh id
 when you next poll.
 
-This resource gives you three endpoints:
+This resource gives you three endpoints. Payouts are addressed by their
+public **UUID** — Maat never exposes its internal sequential id outside
+the perimeter.
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
 | `payouts()->list()` | `GET /waffarha/payouts` | Poll for payouts that need action |
-| `payouts()->get()` | `GET /waffarha/payouts/{id}` | Fetch a single payout |
-| `payouts()->submitProof()` | `POST /waffarha/payouts/{id}/proof` | Attach the bank-transfer receipt |
+| `payouts()->get()` | `GET /waffarha/payouts/{uuid}` | Fetch a single payout |
+| `payouts()->submitProof()` | `POST /waffarha/payouts/{uuid}/proof` | Attach the bank-transfer receipt |
 
 Provider scoping is enforced server-side from the OAuth client behind the
 access token — your token will never see another provider's payouts, and
@@ -48,7 +50,7 @@ use Maat\Waffarha\Facades\Waffarha;
 $pending = Waffarha::payouts()->list(['status' => 'pending']);
 
 foreach ($pending as $payout) {
-    echo $payout->id, ' — ', $payout->amount, ' ', $payout->currency, PHP_EOL;
+    echo $payout->uuid, ' — ', $payout->amount, ' ', $payout->currency, PHP_EOL;
 }
 
 echo 'Total pending: ', $pending->meta?->total ?? count($pending);
@@ -57,11 +59,11 @@ echo 'Total pending: ', $pending->meta?->total ?? count($pending);
 ## `get()`
 
 ```php
-Waffarha::payouts()->get(int $id): Payout
+Waffarha::payouts()->get(string $uuid): Payout
 ```
 
 ```php
-$payout = Waffarha::payouts()->get(42);
+$payout = Waffarha::payouts()->get('1a2b3c4d-5e6f-7890-abcd-ef1234567890');
 
 if ($payout->status === 'proof_submitted') {
     // The admin will review it soon.
@@ -75,7 +77,7 @@ flips the payout to `proof_submitted` and notifies the Maat admin reviewer.
 
 ```php
 Waffarha::payouts()->submitProof(
-    int $id,
+    string $uuid,
     string|array $file,
     ?string $notes = null,
 ): Payout
@@ -96,7 +98,7 @@ Constraints (enforced by Maat):
 
 ```php
 $payout = Waffarha::payouts()->submitProof(
-    id: 42,
+    uuid: '1a2b3c4d-5e6f-7890-abcd-ef1234567890',
     file: '/tmp/transfer-2026-06-13.pdf',
     notes: 'Bank reference WAF-#1278; transfer settled 2026-06-13 14:30 GMT+3',
 );
@@ -115,9 +117,8 @@ Single payout envelope returned by every endpoint above:
     "Result": "true",
     "ResponseMsg": "Payout retrieved successfully.",
     "payout": {
-        "id": 42,
+        "uuid": "1a2b3c4d-5e6f-7890-abcd-ef1234567890",
         "booking": {
-            "id": 12345,
             "uuid": "b6d0b8d2-9c5e-4f1a-9c2a-7a4b8e3f1a0d"
         },
         "amount": 4500.00,
