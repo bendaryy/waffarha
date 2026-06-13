@@ -12,9 +12,10 @@ namespace Maat\Waffarha\Data;
  * has to satisfy the host's stay requirement (typically "book the whole
  * range") or `POST /waffarha/bookings` will reject it with a 409.
  *
- * Use `$id` to cross-reference {@see UnitCalendarDay::$linkedDateId} and use
- * `$message` as the user-facing explanation to surface in your UI when the
- * guest hovers an affected day.
+ * Match a calendar day to its linked-date rule by date range
+ * (`$startDate`..`$endDate`); affected days carry `reason: "linked_date"` on
+ * {@see UnitCalendarDay::$reason}. Use `$message` as the user-facing
+ * explanation to surface in your UI when the guest hovers an affected day.
  *
  * @phpstan-type LinkedDateSummaryPayload array{id?: int|string|null, name?: string|null, start_date?: string|null, end_date?: string|null, required_nights?: int|string|null, message?: string|null}
  */

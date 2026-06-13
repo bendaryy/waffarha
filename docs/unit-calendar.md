@@ -49,6 +49,17 @@ calendar client-side by sending smaller `start_date` / `end_date` pairs.
     "end_date": "2026-08-05",
     "days": 5
   },
+  "same_day_booking": true,
+  "blocklist": ["2026-08-10", "2026-08-11"],
+  "orphan_gaps": [
+    {
+      "start_date": "2026-04-27",
+      "end_date": "2026-04-28",
+      "gap_nights": 1,
+      "base_minimum_stay": 2,
+      "dynamic_minimum_nights": 1
+    }
+  ],
   "linked_dates": [
     {
       "id": 42,
@@ -60,14 +71,40 @@ calendar client-side by sending smaller `start_date` / `end_date` pairs.
     }
   ],
   "calendar": [
-    { "date": "2026-08-01", "price": 1500.00, "currency": "EGP", "available": true,  "is_weekend": false, "linked_date_id": null, "reason": null },
-    { "date": "2026-08-02", "price": 1800.00, "currency": "EGP", "available": true,  "is_weekend": true,  "linked_date_id": null, "reason": "weekend_rate" },
-    { "date": "2026-08-03", "price": 1500.00, "currency": "EGP", "available": false, "is_weekend": false, "linked_date_id": null, "reason": "booked" },
-    { "date": "2026-08-04", "price": 2000.00, "currency": "EGP", "available": true,  "is_weekend": false, "linked_date_id": 42,   "reason": "linked_date" },
-    { "date": "2026-08-05", "price": 2000.00, "currency": "EGP", "available": true,  "is_weekend": false, "linked_date_id": 42,   "reason": "linked_date" }
+    { "date": "2026-08-01", "price": 1500.00, "currency": "EGP", "available": true,  "is_booked": false, "available_for_checkin": true,  "available_for_checkout": true,  "is_weekend": false, "reason": null },
+    { "date": "2026-08-02", "price": 1800.00, "currency": "EGP", "available": true,  "is_booked": false, "available_for_checkin": true,  "available_for_checkout": true,  "is_weekend": true,  "reason": "weekend_rate" },
+    { "date": "2026-08-03", "price": 1500.00, "currency": "EGP", "available": false, "is_booked": true,  "available_for_checkin": false, "available_for_checkout": false, "is_weekend": false, "reason": "booked" },
+    { "date": "2026-08-04", "price": 2000.00, "currency": "EGP", "available": true,  "is_booked": false, "available_for_checkin": true,  "available_for_checkout": true,  "is_weekend": false, "reason": "linked_date" },
+    { "date": "2026-08-05", "price": 2000.00, "currency": "EGP", "available": true,  "is_booked": false, "available_for_checkin": true,  "available_for_checkout": true,  "is_weekend": false, "reason": "linked_date" }
   ]
 }
 ```
+
+### Per-day flags (mirror of v1, intent-friendly names)
+
+Each `calendar` entry carries three booleans the partner can wire straight
+into a calendar UI:
+
+| Field | True means | False means |
+|-------|-----------|-------------|
+| `is_booked` | The night is occupied — existing booking or host-blocked. | Free. |
+| `available_for_checkin` | A NEW guest can begin a stay on this day. | Either booked, or another booking is checking in here, or the host has `same_day_booking = false` and an existing booking is checking out today. |
+| `available_for_checkout` | A NEW guest can end a stay on this day. | Either booked, or another booking is checking out here. |
+
+> These are the **opposite** of v1's `is_check_in` / `is_check_out` flags.
+> v1 said "an existing booking starts/ends here"; the Waffarha surface flips
+> the perspective so the boolean answers "can a new booking start/end here?"
+> — which is what calendar UIs actually want.
+
+### Top-level fields
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `same_day_booking` | `bool` | Whether `tbl_property.same_day_booking` lets a new guest check in on the same day someone else is checking out. When `false`, `available_for_checkin` is forced to `false` on existing check-out days. |
+| `blocklist` | `string[]` | Sorted unique list of host-blocked dates (Y-m-d). Already mirrored per-day on `is_booked`, but exposed here so partners can render block bars without iterating the whole calendar. |
+| `orphan_gaps` | `OrphanGap[]` | Short bookable gaps between existing bookings/blocks that are smaller than `tbl_property.minimum_days`. Maat relaxes the minimum stay for these ranges so the calendar doesn't carry tiny unfillable holes. Each entry carries `{start_date, end_date, gap_nights, base_minimum_stay, dynamic_minimum_nights}`. |
+
+### `reason` (UI hint)
 
 `reason` is a hint for the UI — when more than one signal applies to the same
 day, the higher-priority one wins (in the order below):
@@ -76,7 +113,7 @@ day, the higher-priority one wins (in the order below):
 |-------|---------|-------------|
 | `"booked"` | Existing non-cancelled booking that night. | `false` |
 | `"blocked"` | Host has manually blocked this day (`tbl_blocked_dates` / `property_availability_blocks`). | `false` |
-| `"linked_date"` | Day is inside an active minimum-stay rule — still individually available, but bookable **only** as part of a stay that satisfies the rule (look up `linked_date_id` in `linked_dates`). | `true` |
+| `"linked_date"` | Day is inside an active minimum-stay rule — still individually available, but bookable **only** as part of a stay that satisfies the rule. Scan the top-level `linked_dates` list and pick the entry whose `start_date`..`end_date` covers this day. | `true` |
 | `"special_rate"` | Available; `price` reflects an active `SpecialRate` window. | `true` |
 | `"weekend_rate"` | Available; `price` reflects the property's weekend percentage. | `true` |
 | `null` | Regular available day at base price. | `true` |
@@ -98,23 +135,38 @@ $calendar = Waffarha::units()->calendar('b6d0b8d2-9c5e-4f1a-9c2a-7a4b8e3f1a0d', 
     'end_date' => '2026-08-31',
 ]);
 
-// Quick lookup table for linked-date warnings.
-$linkedDatesById = [];
-foreach ($calendar->linkedDates as $rule) {
-    $linkedDatesById[$rule->id] = $rule;
-}
-
 foreach ($calendar as $day) {
     if (! $day->available) {
         continue;
     }
 
-    $note = $day->linkedDateId !== null
-        ? ' ⚠ ' . ($linkedDatesById[$day->linkedDateId]->message ?? 'min-stay rule applies')
-        : '';
+    $note = '';
+    if ($day->reason === 'linked_date') {
+        foreach ($calendar->linkedDates as $rule) {
+            if ($day->date >= $rule->startDate && $day->date <= $rule->endDate) {
+                $note = ' ⚠ ' . ($rule->message ?? 'min-stay rule applies');
+                break;
+            }
+        }
+    }
 
     echo "{$day->date}: {$day->price} {$day->currency}{$note}\n";
 }
 
 echo "Window: {$calendar->startDate} → {$calendar->endDate} ({$calendar->totalDays} days)\n";
+
+// Render block bars without iterating every day.
+foreach ($calendar->blocklist as $blockedDate) {
+    echo "Blocked: {$blockedDate}\n";
+}
+
+// Highlight short gaps Maat will accept with a relaxed minimum stay.
+foreach ($calendar->orphanGaps as $gap) {
+    echo "Orphan gap {$gap->startDate} → {$gap->endDate} "
+        . "({$gap->gapNights} nights, min {$gap->dynamicMinimumNights})\n";
+}
+
+if ($calendar->sameDayBooking === false) {
+    echo "Host does not allow same-day check-in.\n";
+}
 ```

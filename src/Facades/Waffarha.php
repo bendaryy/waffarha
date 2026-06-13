@@ -6,6 +6,7 @@ namespace Maat\Waffarha\Facades;
 
 use Illuminate\Support\Facades\Facade;
 use Maat\Waffarha\Resources\Bookings;
+use Maat\Waffarha\Resources\Payouts;
 use Maat\Waffarha\Resources\Units;
 use Maat\Waffarha\WaffarhaClient;
 
@@ -14,6 +15,7 @@ use Maat\Waffarha\WaffarhaClient;
  *
  * @method static Units units()
  * @method static Bookings bookings()
+ * @method static Payouts payouts()
  * @method static array<string, mixed> request(string $method, string $endpoint, array<string, mixed> $data = [], array<string, scalar|null> $query = [])
  */
 class Waffarha extends Facade

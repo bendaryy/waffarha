@@ -28,18 +28,35 @@ use Traversable;
  * actually charge.
  *
  * Active host-defined minimum-stay rules that overlap the window are exposed
- * as a flat {@see UnitCalendar::$linkedDates} list (and cross-referenced
- * per-day via {@see UnitCalendarDay::$linkedDateId}).
+ * as a flat {@see UnitCalendar::$linkedDates} list. Affected days carry
+ * `reason: "linked_date"` on {@see UnitCalendarDay::$reason} so the UI can
+ * highlight them; scan the top-level list to find the rule that covers a
+ * given date.
  *
  * @implements IteratorAggregate<int, UnitCalendarDay>
  *
- * @phpstan-type CalendarPayload array{property_uuid?: string|null, currency?: string|null, base_price?: int|float|string|null, window?: array{start_date?: string|null, end_date?: string|null, days?: int|string|null}|null, linked_dates?: list<array<string, mixed>>, calendar?: list<array<string, mixed>>}
+ * Top-level fields ported verbatim from v1's `tbl_book` calendar:
+ *  - {@see UnitCalendar::$blocklist} — sorted unique list of host-blocked
+ *    dates (Y-m-d). Already mirrored per-day on `UnitCalendarDay::$isBooked`,
+ *    but exposed here too so partners can render block bars without
+ *    iterating the whole window.
+ *  - {@see UnitCalendar::$orphanGaps} — short gaps between bookings /
+ *    blocked dates Maat will accept with a relaxed minimum stay so the
+ *    calendar doesn't carry tiny unfillable holes.
+ *  - {@see UnitCalendar::$sameDayBooking} — whether the host allows a new
+ *    check-in on the same day someone else is checking out. When `false`,
+ *    `UnitCalendarDay::$availableForCheckin` is forced to `false` on
+ *    existing check-out days.
+ *
+ * @phpstan-type CalendarPayload array{property_uuid?: string|null, currency?: string|null, base_price?: int|float|string|null, window?: array{start_date?: string|null, end_date?: string|null, days?: int|string|null}|null, linked_dates?: list<array<string, mixed>>, calendar?: list<array<string, mixed>>, blocklist?: list<string>, orphan_gaps?: list<array<string, mixed>>, same_day_booking?: bool|int|string|null}
  */
 final readonly class UnitCalendar implements Countable, IteratorAggregate
 {
     /**
      * @param  list<UnitCalendarDay>  $days
      * @param  list<LinkedDateSummary>  $linkedDates
+     * @param  list<string>  $blocklist
+     * @param  list<OrphanGap>  $orphanGaps
      */
     public function __construct(
         public ?string $propertyUuid,
@@ -50,6 +67,9 @@ final readonly class UnitCalendar implements Countable, IteratorAggregate
         public ?int $totalDays,
         public array $days,
         public array $linkedDates = [],
+        public array $blocklist = [],
+        public array $orphanGaps = [],
+        public ?bool $sameDayBooking = null,
     ) {}
 
     /**
@@ -79,9 +99,33 @@ final readonly class UnitCalendar implements Countable, IteratorAggregate
             }
         }
 
+        $blocklistRows = isset($data['blocklist']) && is_array($data['blocklist'])
+            ? $data['blocklist']
+            : [];
+
+        $blocklist = [];
+        foreach (array_values($blocklistRows) as $row) {
+            if (is_scalar($row)) {
+                $blocklist[] = (string) $row;
+            }
+        }
+
+        $orphanGapRows = isset($data['orphan_gaps']) && is_array($data['orphan_gaps'])
+            ? $data['orphan_gaps']
+            : [];
+
+        $orphanGaps = [];
+        foreach (array_values($orphanGapRows) as $row) {
+            if (is_array($row)) {
+                /** @var array<string, mixed> $row */
+                $orphanGaps[] = OrphanGap::fromArray($row);
+            }
+        }
+
         $window = isset($data['window']) && is_array($data['window']) ? $data['window'] : [];
         $basePrice = $data['base_price'] ?? null;
         $totalDays = $window['days'] ?? null;
+        $sameDayBooking = $data['same_day_booking'] ?? null;
 
         return new self(
             propertyUuid: isset($data['property_uuid']) && is_scalar($data['property_uuid']) ? (string) $data['property_uuid'] : null,
@@ -92,6 +136,9 @@ final readonly class UnitCalendar implements Countable, IteratorAggregate
             totalDays: is_numeric($totalDays) ? (int) $totalDays : null,
             days: $days,
             linkedDates: $linkedDates,
+            blocklist: $blocklist,
+            orphanGaps: $orphanGaps,
+            sameDayBooking: $sameDayBooking !== null ? (bool) $sameDayBooking : null,
         );
     }
 

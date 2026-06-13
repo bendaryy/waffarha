@@ -220,6 +220,9 @@ Iterable (`foreach`) and countable (`count()`). Returned by `units()->calendar()
 | `totalDays` | `?int` | `window.days` |
 | `days` | `list<UnitCalendarDay>` | `calendar` rows |
 | `linkedDates` | `list<LinkedDateSummary>` | `linked_dates` rows |
+| `blocklist` | `list<string>` | `blocklist` — sorted unique host-blocked dates (Y-m-d), mirrored per-day on `UnitCalendarDay::$isBooked` |
+| `orphanGaps` | `list<OrphanGap>` | `orphan_gaps` — short bookable gaps Maat accepts with a relaxed minimum stay |
+| `sameDayBooking` | `?bool` | `same_day_booking` — host opt-in for new check-in on an existing check-out day |
 
 Methods: `count()`, `getIterator()`, `toArray(): array` (raw day rows).
 
@@ -233,12 +236,28 @@ A single row inside `UnitCalendar::$days`.
 | `price` | `?float` | `price` (EGP, rounded to 2 decimals) |
 | `currency` | `?string` | `currency` |
 | `available` | `?bool` | `available` |
+| `isBooked` | `?bool` | `is_booked` — true when the night is taken (existing booking) or host-blocked |
+| `availableForCheckin` | `?bool` | `available_for_checkin` — true when a NEW guest can begin a stay on this day. Opposite of v1's `is_check_in`; forced to `false` on existing check-out days when the host has `same_day_booking = false` |
+| `availableForCheckout` | `?bool` | `available_for_checkout` — true when a NEW guest can end a stay on this day. Opposite of v1's `is_check_out` |
 | `isWeekend` | `?bool` | `is_weekend` |
-| `linkedDateId` | `?int` | `linked_date_id` — cross-reference into `UnitCalendar::$linkedDates` |
-| `reason` | `?string` | `reason` — `null`, `"weekend_rate"`, `"special_rate"`, `"linked_date"`, `"booked"`, or `"blocked"` (priority: `booked` > `blocked` > `linked_date` > `special_rate` > `weekend_rate`) |
+| `reason` | `?string` | `reason` — `null`, `"weekend_rate"`, `"special_rate"`, `"linked_date"`, `"booked"`, or `"blocked"` (priority: `booked` > `blocked` > `linked_date` > `special_rate` > `weekend_rate`). For `"linked_date"` days, scan `UnitCalendar::$linkedDates` and pick the rule whose date range covers this day. |
 | `attributes` | `array<string,mixed>` | full decoded row |
 
 Methods: `get(string $key, mixed $default = null)`, `toArray()`.
+
+### OrphanGap
+
+A single entry inside `UnitCalendar::$orphanGaps`. Represents a short
+bookable gap between existing bookings / blocked dates that's smaller than
+the property's base minimum stay.
+
+| Property | Type | Source key |
+|----------|------|-----------|
+| `startDate` | `?string` | `start_date` (Y-m-d, inclusive) |
+| `endDate` | `?string` | `end_date` (Y-m-d, inclusive) |
+| `gapNights` | `?int` | `gap_nights` |
+| `baseMinimumStay` | `?int` | `base_minimum_stay` — the property's normal minimum, surfaced so partners can show the relaxation as a hint |
+| `dynamicMinimumNights` | `?int` | `dynamic_minimum_nights` — effective minimum Maat will accept for this gap (always `1` today) |
 
 ### LinkedDateSummary
 
@@ -247,7 +266,7 @@ Inside `UnitCalendar::$linkedDates`.
 
 | Property | Type | Source key |
 |----------|------|-----------|
-| `id` | `?int` | `id` — referenced by `UnitCalendarDay::$linkedDateId` |
+| `id` | `?int` | `id` — stable identifier for the rule |
 | `name` | `?string` | `name` |
 | `startDate` | `?string` | `start_date` |
 | `endDate` | `?string` | `end_date` |
@@ -467,6 +486,46 @@ Nested under `Booking::$guest`.
 | `nationality` | `?string` | `nationality` |
 | `passportNumber` | `?string` | `passport_number` |
 | `dateOfBirth` | `?string` | `date_of_birth` |
+| `attributes` | `array<string,mixed>` | full decoded object |
+
+Methods: `get(string $key, mixed $default = null)`, `toArray()`.
+
+## Returned by `payouts()->list()`, `get()`, `submitProof()`
+
+### PayoutCollection
+
+Iterable (`foreach`) and countable (`count()`). Same envelope shape as
+`BookingCollection` — rows under `payouts`, optional `pagination` block.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `items` | `list<Payout>` | The payouts on this page. |
+| `meta` | `?PaginationMeta` | Pagination metadata, or `null` if absent. |
+
+Methods: `count()`, `getIterator()`, `toArray(): array` (raw rows).
+
+### Payout
+
+A single payout request raised by Maat for one booking. Fields below are
+promoted; the raw decoded payload is always retained.
+
+| Property | Type | Source key |
+|----------|------|-----------|
+| `id` | `?int` | `id` |
+| `bookingId` | `?int` | `booking.id` |
+| `bookingUuid` | `?string` | `booking.uuid` |
+| `amount` | `?float` | `amount` |
+| `currency` | `?string` | `currency` |
+| `status` | `?string` | `status` — one of `pending`, `proof_submitted`, `completed`, `rejected` |
+| `statusLabel` | `?string` | `status_label` — humanised version of `status` |
+| `proofUrl` | `?string` | `proof_url` — public URL to the uploaded receipt |
+| `proofType` | `?string` | `proof_type` — `image` or `file` |
+| `providerNotes` | `?string` | `provider_notes` — note attached at upload time |
+| `rejectionReason` | `?string` | `rejection_reason` — set when `status = rejected` |
+| `proofSubmittedAt` | `?string` | `proof_submitted_at` (`Y-m-d H:i:s`) |
+| `reviewedAt` | `?string` | `reviewed_at` (`Y-m-d H:i:s`) |
+| `createdAt` | `?string` | `created_at` (`Y-m-d H:i:s`) |
+| `updatedAt` | `?string` | `updated_at` (`Y-m-d H:i:s`) |
 | `attributes` | `array<string,mixed>` | full decoded object |
 
 Methods: `get(string $key, mixed $default = null)`, `toArray()`.

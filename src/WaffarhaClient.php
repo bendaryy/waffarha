@@ -7,6 +7,7 @@ namespace Maat\Waffarha;
 use Maat\Waffarha\Exceptions\WaffarhaRequestException;
 use Maat\Waffarha\Http\Transport;
 use Maat\Waffarha\Resources\Bookings;
+use Maat\Waffarha\Resources\Payouts;
 use Maat\Waffarha\Resources\Units;
 
 /**
@@ -21,6 +22,8 @@ class WaffarhaClient
     private ?Units $units = null;
 
     private ?Bookings $bookings = null;
+
+    private ?Payouts $payouts = null;
 
     public function __construct(
         private readonly Transport $transport,
@@ -41,6 +44,16 @@ class WaffarhaClient
     public function bookings(): Bookings
     {
         return $this->bookings ??= new Bookings($this->transport);
+    }
+
+    /**
+     * The `payouts` API: per-booking settlement queue raised by Maat. Use
+     * `list()`/`get()` to pick up pending transfers and `submitProof()` to
+     * upload the bank-receipt file once the transfer has been issued.
+     */
+    public function payouts(): Payouts
+    {
+        return $this->payouts ??= new Payouts($this->transport);
     }
 
     /**

@@ -77,6 +77,50 @@ class Transport
     }
 
     /**
+     * Send a multipart/form-data POST request. Used for endpoints that accept
+     * file uploads (e.g. payout proofs).
+     *
+     * `$files` is an associative array mapping the form field name to either:
+     *   - a string file path on disk, OR
+     *   - an array of `['contents' => string|resource, 'filename' => string,
+     *     'headers' => array<string,string>]` for full control.
+     *
+     * `$fields` carries the regular text form fields (the equivalent of
+     * `$data` for the JSON `send()` method).
+     *
+     * @param  array<string, mixed>  $fields
+     * @param  array<string, string|array{contents: mixed, filename?: string, headers?: array<string,string>}>  $files
+     * @return array<string, mixed>
+     *
+     * @throws WaffarhaRequestException
+     */
+    public function sendMultipart(string $endpoint, array $fields = [], array $files = []): array
+    {
+        $response = $this->dispatchMultipart($endpoint, $fields, $files);
+
+        if ($response->status() === 401) {
+            $this->tokenManager->refresh();
+            $response = $this->dispatchMultipart($endpoint, $fields, $files);
+        }
+
+        if ($response->failed()) {
+            $this->logFailure('POST', $endpoint, $response);
+
+            throw WaffarhaRequestException::fromStatus(
+                'POST',
+                $this->url($endpoint),
+                $response->status(),
+                $response->body(),
+            );
+        }
+
+        /** @var array<string, mixed> $json */
+        $json = $response->json() ?? [];
+
+        return $json;
+    }
+
+    /**
      * Perform a single HTTP attempt (no 401 handling), returning the raw
      * response. Connection failures are logged and rethrown as a typed
      * {@see WaffarhaRequestException}.
@@ -115,6 +159,58 @@ class Transport
             $this->logConnectionError($method, $url, $e);
 
             throw WaffarhaRequestException::connectionError($method, $url, $e);
+        }
+    }
+
+    /**
+     * Build and dispatch a single multipart/form-data attempt (no 401
+     * handling), returning the raw response.
+     *
+     * @param  array<string, mixed>  $fields
+     * @param  array<string, string|array{contents: mixed, filename?: string, headers?: array<string,string>}>  $files
+     *
+     * @throws WaffarhaRequestException
+     */
+    private function dispatchMultipart(string $endpoint, array $fields, array $files): Response
+    {
+        $url = $this->url($endpoint);
+
+        $request = Http::withToken($this->tokenManager->token())
+            ->acceptJson()
+            ->timeout($this->timeout)
+            ->connectTimeout($this->connectTimeout)
+            ->asMultipart();
+
+        foreach ($files as $field => $file) {
+            if (is_string($file)) {
+                $contents = @fopen($file, 'rb');
+
+                if ($contents === false) {
+                    throw WaffarhaRequestException::fromStatus(
+                        'POST',
+                        $url,
+                        0,
+                        "Unable to open upload file: {$file}",
+                    );
+                }
+
+                $request = $request->attach($field, $contents, basename($file));
+            } else {
+                $request = $request->attach(
+                    $field,
+                    $file['contents'],
+                    $file['filename'] ?? $field,
+                    $file['headers'] ?? [],
+                );
+            }
+        }
+
+        try {
+            return $request->post($url, $fields);
+        } catch (ConnectionException $e) {
+            $this->logConnectionError('POST', $url, $e);
+
+            throw WaffarhaRequestException::connectionError('POST', $url, $e);
         }
     }
 

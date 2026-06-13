@@ -15,7 +15,10 @@ use Maat\Waffarha\Data\UnitDetail;
 use Maat\Waffarha\Exceptions\WaffarhaConfigurationException;
 use Maat\Waffarha\Exceptions\WaffarhaRequestException;
 use Maat\Waffarha\Http\Transport;
+use Maat\Waffarha\Data\Payout;
+use Maat\Waffarha\Data\PayoutCollection;
 use Maat\Waffarha\Resources\Bookings;
+use Maat\Waffarha\Resources\Payouts;
 use Maat\Waffarha\Resources\Units;
 use Maat\Waffarha\WaffarhaClient;
 
@@ -35,6 +38,14 @@ class WaffarhaClientTest extends TestCase
 
         $this->assertInstanceOf(Bookings::class, $client->bookings());
         $this->assertSame($client->bookings(), $client->bookings(), 'bookings() should return the same instance.');
+    }
+
+    public function test_payouts_accessor_returns_a_memoized_resource(): void
+    {
+        $client = $this->app->make(WaffarhaClient::class);
+
+        $this->assertInstanceOf(Payouts::class, $client->payouts());
+        $this->assertSame($client->payouts(), $client->payouts(), 'payouts() should return the same instance.');
     }
 
     private function fakeToken(): void
@@ -399,11 +410,11 @@ class WaffarhaClientTest extends TestCase
                     ],
                 ],
                 'calendar' => [
-                    ['date' => '2026-08-01', 'price' => 1500.00, 'currency' => 'EGP', 'available' => true,  'is_weekend' => false, 'linked_date_id' => null, 'reason' => null],
-                    ['date' => '2026-08-02', 'price' => 1800.00, 'currency' => 'EGP', 'available' => true,  'is_weekend' => true,  'linked_date_id' => null, 'reason' => 'weekend_rate'],
-                    ['date' => '2026-08-03', 'price' => 1500.00, 'currency' => 'EGP', 'available' => false, 'is_weekend' => false, 'linked_date_id' => null, 'reason' => 'booked'],
-                    ['date' => '2026-08-04', 'price' => 2000.00, 'currency' => 'EGP', 'available' => true,  'is_weekend' => false, 'linked_date_id' => 42,   'reason' => 'linked_date'],
-                    ['date' => '2026-08-05', 'price' => 2000.00, 'currency' => 'EGP', 'available' => true,  'is_weekend' => false, 'linked_date_id' => 42,   'reason' => 'linked_date'],
+                    ['date' => '2026-08-01', 'price' => 1500.00, 'currency' => 'EGP', 'available' => true,  'is_weekend' => false, 'reason' => null],
+                    ['date' => '2026-08-02', 'price' => 1800.00, 'currency' => 'EGP', 'available' => true,  'is_weekend' => true,  'reason' => 'weekend_rate'],
+                    ['date' => '2026-08-03', 'price' => 1500.00, 'currency' => 'EGP', 'available' => false, 'is_weekend' => false, 'reason' => 'booked'],
+                    ['date' => '2026-08-04', 'price' => 2000.00, 'currency' => 'EGP', 'available' => true,  'is_weekend' => false, 'reason' => 'linked_date'],
+                    ['date' => '2026-08-05', 'price' => 2000.00, 'currency' => 'EGP', 'available' => true,  'is_weekend' => false, 'reason' => 'linked_date'],
                 ],
             ]),
         ]);
@@ -426,7 +437,6 @@ class WaffarhaClientTest extends TestCase
         $this->assertSame(1500.00, $calendar->days[0]->price);
         $this->assertTrue($calendar->days[0]->available);
         $this->assertFalse($calendar->days[0]->isWeekend);
-        $this->assertNull($calendar->days[0]->linkedDateId);
         $this->assertNull($calendar->days[0]->reason);
 
         // Weekend rate.
@@ -438,12 +448,12 @@ class WaffarhaClientTest extends TestCase
         $this->assertSame('booked', $calendar->days[2]->reason);
 
         // Linked-date day: still individually available, but flagged so the
-        // partner UI can warn the guest before they pick the range.
+        // partner UI can warn the guest before they pick the range. Match
+        // by date range against the top-level linked_dates list.
         $this->assertTrue($calendar->days[3]->available);
         $this->assertSame('linked_date', $calendar->days[3]->reason);
-        $this->assertSame(42, $calendar->days[3]->linkedDateId);
 
-        // Top-level linked_dates list cross-references the per-day id.
+        // Top-level linked_dates list carries the rule details.
         $this->assertCount(1, $calendar->linkedDates);
         $this->assertSame(42, $calendar->linkedDates[0]->id);
         $this->assertSame('Eid Al-Adha', $calendar->linkedDates[0]->name);
@@ -757,5 +767,137 @@ class WaffarhaClientTest extends TestCase
 
         $this->expectException(WaffarhaConfigurationException::class);
         $this->app->make(WaffarhaClient::class);
+    }
+
+    public function test_payouts_list_parses_envelope_into_collection(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/payouts*' => Http::response([
+                'ResponseCode' => '200',
+                'Result' => 'true',
+                'ResponseMsg' => 'Payouts retrieved successfully.',
+                'payouts' => [
+                    [
+                        'id' => 1,
+                        'booking' => ['id' => 100, 'uuid' => 'uuid-100'],
+                        'amount' => 4500.00,
+                        'currency' => 'EGP',
+                        'status' => 'pending',
+                        'status_label' => 'Pending',
+                        'proof_url' => null,
+                        'proof_type' => null,
+                        'provider_notes' => null,
+                        'rejection_reason' => null,
+                        'proof_submitted_at' => null,
+                        'reviewed_at' => null,
+                        'created_at' => '2026-06-12 09:00:01',
+                        'updated_at' => '2026-06-12 09:00:01',
+                    ],
+                ],
+                'pagination' => [
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'per_page' => 50,
+                    'total' => 1,
+                ],
+            ]),
+        ]);
+
+        $payouts = $this->app->make(WaffarhaClient::class)->payouts()->list(['status' => 'pending']);
+
+        $this->assertInstanceOf(PayoutCollection::class, $payouts);
+        $this->assertCount(1, $payouts);
+        $this->assertSame(1, $payouts->items[0]->id);
+        $this->assertSame('uuid-100', $payouts->items[0]->bookingUuid);
+        $this->assertSame(4500.0, $payouts->items[0]->amount);
+        $this->assertSame('pending', $payouts->items[0]->status);
+        $this->assertSame(1, $payouts->meta?->total);
+
+        Http::assertSent(static function ($request): bool {
+            return str_contains((string) $request->url(), 'waffarha/payouts')
+                && str_contains((string) $request->url(), 'status=pending');
+        });
+    }
+
+    public function test_payouts_get_unwraps_the_payout_envelope(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/payouts/42' => Http::response([
+                'ResponseCode' => '200',
+                'Result' => 'true',
+                'ResponseMsg' => 'Payout retrieved successfully.',
+                'payout' => [
+                    'id' => 42,
+                    'booking' => ['id' => 100, 'uuid' => 'uuid-100'],
+                    'amount' => 2500.00,
+                    'currency' => 'EGP',
+                    'status' => 'proof_submitted',
+                    'status_label' => 'Proof Submitted',
+                    'proof_url' => 'https://cdn.example/proof.pdf',
+                ],
+            ]),
+        ]);
+
+        // The single-payout endpoints return `{ "ResponseCode": ..., "payout":
+        // { ... } }`. Payout::fromArray() unwraps the `payout` key
+        // transparently so consumers get typed properties either way.
+        $payout = $this->app->make(WaffarhaClient::class)->payouts()->get(42);
+
+        $this->assertInstanceOf(Payout::class, $payout);
+        $this->assertSame(42, $payout->id);
+        $this->assertSame(100, $payout->bookingId);
+        $this->assertSame('uuid-100', $payout->bookingUuid);
+        $this->assertSame('proof_submitted', $payout->status);
+        $this->assertSame('https://cdn.example/proof.pdf', $payout->proofUrl);
+    }
+
+    public function test_payouts_submit_proof_sends_multipart_request(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/payouts/42/proof' => Http::response([
+                'ResponseCode' => '200',
+                'Result' => 'true',
+                'ResponseMsg' => 'Proof uploaded successfully.',
+                'payout' => [
+                    'id' => 42,
+                    'booking' => ['id' => 100, 'uuid' => 'uuid-100'],
+                    'amount' => 2500.00,
+                    'currency' => 'EGP',
+                    'status' => 'proof_submitted',
+                    'status_label' => 'Proof Submitted',
+                    'proof_url' => 'https://cdn.example/proof.pdf',
+                    'proof_type' => 'file',
+                    'provider_notes' => 'WAF-#1278',
+                ],
+            ]),
+        ]);
+
+        $tmp = tempnam(sys_get_temp_dir(), 'waffarha_proof_');
+        file_put_contents($tmp, '%PDF-1.4 fake content');
+
+        try {
+            $payout = $this->app->make(WaffarhaClient::class)
+                ->payouts()
+                ->submitProof(42, $tmp, 'WAF-#1278');
+
+            $this->assertSame('proof_submitted', $payout->status);
+            $this->assertSame('https://cdn.example/proof.pdf', $payout->proofUrl);
+
+            Http::assertSent(static function ($request): bool {
+                $contentType = $request->header('Content-Type')[0] ?? '';
+                $body = (string) $request->body();
+
+                return str_contains((string) $request->url(), 'waffarha/payouts/42/proof')
+                    && str_starts_with($contentType, 'multipart/form-data')
+                    && str_contains($body, 'name="proof"')
+                    && str_contains($body, 'name="notes"')
+                    && str_contains($body, 'WAF-#1278');
+            });
+        } finally {
+            @unlink($tmp);
+        }
     }
 }

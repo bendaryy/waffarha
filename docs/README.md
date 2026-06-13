@@ -18,6 +18,7 @@ start, see the [project README](../README.md).
 - [`bookings()->list()`](list-bookings.md) — list bookings (returns `BookingCollection`).
 - [`bookings()->get()`](get-booking.md) — booking details (returns `Booking`).
 - [`bookings()->create()`](create-booking.md) — create a booking (returns `Booking`).
+- [`payouts()`](payouts.md) — list, fetch, and upload proof for per-booking payouts.
 - [Custom requests](custom-requests.md) — the generic `request()` escape hatch.
 
 ### Reference
