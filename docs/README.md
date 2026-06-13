@@ -18,7 +18,9 @@ start, see the [project README](../README.md).
 - [`bookings()->list()`](list-bookings.md) — list bookings (returns `BookingCollection`).
 - [`bookings()->get()`](get-booking.md) — booking details (returns `Booking`).
 - [`bookings()->create()`](create-booking.md) — create a booking (returns `Booking`).
-- [`payouts()`](payouts.md) — list, fetch, and upload proof for per-booking payouts.
+- [`payouts()->list()`](payouts.md#list) — list per-booking payouts (returns `PayoutCollection`).
+- [`payouts()->get()`](payouts.md#get) — payout details by UUID (returns `Payout`).
+- [`payouts()->submitProof()`](payouts.md#submitproof) — upload the bank-transfer receipt (returns `Payout`).
 - [Custom requests](custom-requests.md) — the generic `request()` escape hatch.
 
 ### Reference
