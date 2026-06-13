@@ -26,7 +26,7 @@ window during which somebody else might book the same dates).
 | `check_in` | string (`Y-m-d`) | yes | Must be today or later. |
 | `check_out` | string (`Y-m-d`) | yes | Must be strictly after `check_in`. |
 | `guests_count` | int | no | Optional sanity hint — not used for availability filtering today, but accepted for forward-compat. |
-| `discount_in_percentage` | number | no | Optional Maat-coupon-style discount, `0`–`100`. When set the response's `financial` block also exposes `discount_percentage`, `discount_amount`, `subtotal_after_discount`, and `total` is reduced accordingly (cleaning fee is never discounted). The same percentage must be re-sent to [`bookings()->create()`](create-booking.md) for the booking row to actually carry the discount. |
+| `discount_in_percentage` | number | no | Optional Maat-coupon-style discount, `0`–`100`. When set the response's `financial` block also exposes `discount_percentage`, `discount_amount`, `subtotal_after_discount`, and `total` is reduced accordingly (cleaning fee is never discounted). Commission stays calculated on the **original `subtotal`** — Maat (not the host) eats the discount, exactly like a Maat coupon in `POST /v1/u_book`. The same percentage must be re-sent to [`bookings()->create()`](create-booking.md) for the booking row to actually carry the discount. |
 
 ## Response — `200 OK`
 
@@ -61,7 +61,7 @@ window during which somebody else might book the same dates).
     "subtotal_after_discount": 4050.00,
     "cleaning_fee": 250.00,
     "commission_percentage": 1.00,
-    "commission_amount": 40.50,
+    "commission_amount": 45.00,
     "total": 4300.00
   },
   "special_rates_applied": [

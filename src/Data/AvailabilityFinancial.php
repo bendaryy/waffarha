@@ -21,11 +21,14 @@ namespace Maat\Waffarha\Data;
  *    partner should display to the guest and send back as `total_amount`
  *    on {@see \Maat\Waffarha\Resources\Bookings::create()}.
  *  - `$commissionPercentage` mirrors `tbl_setting.commission` (e.g. `1.00`
- *    means 1%), and `$commissionAmount` is the calculated amount applied
- *    to `$subtotalAfterDiscount` (cleaning fee is commission-free).
- *    Commission is **NOT** added to `$total` — same convention as
- *    `v1/u_simulate_booking` on the regular Maat surface. It is exposed
- *    so partners can reconcile their share against Maat's host payouts.
+ *    means 1%), and `$commissionAmount` is calculated against the
+ *    **original `$subtotal`** (NOT `$subtotalAfterDiscount`) — exactly
+ *    like a Maat coupon, where Maat eats the discount and the host is
+ *    paid as if no discount existed. The cleaning fee is always
+ *    commission-free. Commission is **NOT** added to `$total` — same
+ *    convention as `v1/u_simulate_booking` on the regular Maat surface.
+ *    It is exposed so partners can reconcile their share against Maat's
+ *    host payouts.
  *
  * @phpstan-type FinancialPayload array{currency?: string|null, subtotal?: int|float|string|null, discount_percentage?: int|float|string|null, discount_amount?: int|float|string|null, subtotal_after_discount?: int|float|string|null, cleaning_fee?: int|float|string|null, commission_percentage?: int|float|string|null, commission_amount?: int|float|string|null, total?: int|float|string|null}
  */

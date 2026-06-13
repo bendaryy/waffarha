@@ -104,8 +104,12 @@ How `financial` is derived (same pipeline as `/check`):
   only present when `discount_in_percentage` was sent.
   `discount_amount = subtotal × discount_percentage / 100`,
   `subtotal_after_discount = subtotal − discount_amount`. Cleaning fee is
-  never discounted, mirroring the Maat-coupon branch in
-  `POST /v1/u_book`.
+  never discounted. **Important — Maat-coupon shape:** the discount only
+  reduces what the guest pays (`total`). Behind the scenes Maat's
+  commission and the host's payout (`net_amount`) are still calculated
+  against the **original `subtotal`** — the host is paid as if no discount
+  existed, and Maat (not the host) absorbs the discount. Same convention
+  as the Maat-coupon branch in `POST /v1/u_book`.
 - `cleaning_fee` — `tbl_property.cleaning_fee` converted to EGP, charged
   once per booking.
 - `total` — `subtotal_after_discount + cleaning_fee` (or
