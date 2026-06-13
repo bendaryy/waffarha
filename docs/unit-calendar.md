@@ -23,11 +23,16 @@ Waffarha::units()->calendar(string $uuid, array $query = []): UnitCalendar
 
 | Key | Type | Default | Notes |
 |-----|------|---------|-------|
-| `start_date` | string (`Y-m-d`) | today | First day in the window. |
-| `end_date` | string (`Y-m-d`) | `start_date + 180 days` | Last day (inclusive). Must be ≥ `start_date`. |
+| `start_date` | string (`Y-m-d`) | today | First day in the window (inclusive). |
+| `end_date` | string (`Y-m-d`) | day 180 of the window | Last day (inclusive). Must be ≥ `start_date`. |
 
-The window is hard-capped at **180 days** per call — wider requests come back
-as HTTP 422, so partners must paginate the calendar client-side.
+Both `start_date` and `end_date` are **inclusive** — a request with
+`start_date = 2026-06-13` and `end_date = 2026-12-09` returns exactly 180
+day rows.
+
+The window is hard-capped at **180 days** per call (inclusive count) —
+wider requests come back as HTTP 422, so partners must paginate the
+calendar client-side by sending smaller `start_date` / `end_date` pairs.
 
 ## Response shape
 
