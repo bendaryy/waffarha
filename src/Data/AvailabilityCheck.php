@@ -54,6 +54,12 @@ final readonly class AvailabilityCheck implements Countable, IteratorAggregate
 
     public ?float $commissionAmount;
 
+    public ?float $discountPercentage;
+
+    public ?float $discountAmount;
+
+    public ?float $subtotalAfterDiscount;
+
     /**
      * @param  list<AvailabilityNight>  $breakdown
      * @param  list<SpecialRateApplied>  $specialRatesApplied
@@ -76,6 +82,9 @@ final readonly class AvailabilityCheck implements Countable, IteratorAggregate
         $this->total = $financial->total;
         $this->commissionPercentage = $financial->commissionPercentage;
         $this->commissionAmount = $financial->commissionAmount;
+        $this->discountPercentage = $financial->discountPercentage;
+        $this->discountAmount = $financial->discountAmount;
+        $this->subtotalAfterDiscount = $financial->subtotalAfterDiscount;
     }
 
     /**
