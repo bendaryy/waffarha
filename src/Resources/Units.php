@@ -52,8 +52,8 @@ final class Units extends Resource
      *
      * - **HTTP:** `GET unit/{uuid}/calendar`
      * - **Query:** `start_date`, `end_date` (`Y-m-d`). Both optional — Maat
-     *   defaults to a 60-day window starting today and rejects any window
-     *   larger than 365 days with HTTP 422.
+     *   defaults to a 180-day window starting today and rejects any window
+     *   larger than 180 days with HTTP 422.
      * - **Prices:** always returned in EGP and already include the same
      *   `SpecialRate` + `weekend percentage` adjustments the booking flow
      *   uses, so the displayed prices line up with what

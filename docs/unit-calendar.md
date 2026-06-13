@@ -24,9 +24,9 @@ Waffarha::units()->calendar(string $uuid, array $query = []): UnitCalendar
 | Key | Type | Default | Notes |
 |-----|------|---------|-------|
 | `start_date` | string (`Y-m-d`) | today | First day in the window. |
-| `end_date` | string (`Y-m-d`) | `start_date + 60 days` | Last day (inclusive). Must be ≥ `start_date`. |
+| `end_date` | string (`Y-m-d`) | `start_date + 180 days` | Last day (inclusive). Must be ≥ `start_date`. |
 
-The window is hard-capped at **365 days** per call — wider requests come back
+The window is hard-capped at **180 days** per call — wider requests come back
 as HTTP 422, so partners must paginate the calendar client-side.
 
 ## Response shape
