@@ -68,6 +68,7 @@ You can also resolve the client via dependency injection
 |-----|----------|
 | [Configuration](docs/configuration.md) | All config keys and env variables |
 | [Authentication](docs/authentication.md) | How tokens are obtained/cached/refreshed; token endpoint reference |
+| [`POST /oauth/token`](docs/authentication.md#token-endpoint) | Get / refresh an access token (`client_credentials` + `refresh_token` grants). The SDK calls this for you — direct use is for non-PHP partners |
 | [`units()->list()`](docs/get-units.md) | List units — params, response, return type |
 | [`units()->get()`](docs/get-unit.md) | Unit details — response shape, full field reference |
 | [`units()->calendar()`](docs/unit-calendar.md) | Per-day pricing + availability calendar (180-day window, hard cap) |
