@@ -17,7 +17,7 @@ Waffarha::bookings()->list(array $query = []): BookingCollection
 
 | Param | Type | Description |
 |-------|------|-------------|
-| `status` | string | Filter by booking status (e.g. `Confirmed`, `Pending`). |
+| `status` | string | Filter by booking status — exact match. See [booking-statuses.md](booking-statuses.md) (`Confirmed`, `Check_in`, `Completed`, `Cancelled`, …). |
 | `check_in_from` | string | Earliest check-in date (`Y-m-d`). |
 | `check_in_to` | string | Latest check-in date (`Y-m-d`). |
 | `page` / `per_page` | int | Pagination. |

@@ -75,10 +75,15 @@ You can also resolve the client via dependency injection
 | [`units()->checkAvailability()`](docs/check-availability.md) | Confirm a date range + price breakdown before creating a booking |
 | [`bookings()->list()`](docs/list-bookings.md) | List bookings — filters, response, return type |
 | [`bookings()->get()`](docs/get-booking.md) | Booking details by UUID |
+| [`bookings()->preview()`](docs/booking-preview.md) | Booking-shaped quote before create (`POST /bookings/preview`) — always EGP |
 | [`bookings()->create()`](docs/create-booking.md) | Create a booking — payload reference |
+| [`bookings()->bookDetails()`](docs/book-details.md) | Guest receipt JSON (`POST /book_details`) — always EGP |
 | [`payouts()->list()`](docs/payouts.md#list) | List per-booking payouts (returns `PayoutCollection`) |
 | [`payouts()->get()`](docs/payouts.md#get) | Payout details by UUID (returns `Payout`) |
 | [`payouts()->submitProof()`](docs/payouts.md#submitproof) | Upload the bank-transfer receipt for an open payout |
+| [`whatsapp()->get()`](docs/whatsapp.md) | Maat support WhatsApp (`tbl_setting.app_phone_number`) |
+| [Financial fields](docs/financials.md) | All money fields (check / booking / receipt), formulas, discounts |
+| [Booking statuses](docs/booking-statuses.md) | All `status` values and Waffarha lifecycle |
 | [Webhooks](docs/webhooks.md) | Outbound booking webhooks (Maat → Waffarha) |
 | [Custom requests](docs/custom-requests.md) | The generic `request()` escape hatch |
 | [Data objects](docs/data-objects.md) | Field reference for every returned DTO |

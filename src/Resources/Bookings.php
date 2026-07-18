@@ -6,11 +6,13 @@ namespace Maat\Waffarha\Resources;
 
 use Maat\Waffarha\Data\Booking;
 use Maat\Waffarha\Data\BookingCollection;
+use Maat\Waffarha\Data\GuestBookDetails;
 use Maat\Waffarha\Exceptions\WaffarhaRequestException;
 
 /**
- * The `bookings` API: listing provider bookings, fetching a single booking, and
- * creating bookings on Maat units.
+ * The `bookings` API: listing provider bookings, fetching a single booking,
+ * creating bookings on Maat units, and fetching the guest receipt
+ * (`bookDetails`).
  *
  * NOTE: `update()` and `cancel()` are intentionally disabled while the Maat
  * server-side endpoints (`PUT/DELETE /waffarha/bookings/{uuid}`) are
@@ -51,6 +53,24 @@ final class Bookings extends Resource
     }
 
     /**
+     * Booking preview — same `booking` shape as {@see create()} /
+     * {@see get()} (always EGP). Does **not** return the receipt
+     * `bookdetails` shape — use {@see bookDetails()} for that after create.
+     * Does not create a booking.
+     *
+     * @param  array<string, mixed>  $payload  Same fields as create, minus
+     *                                         `total_amount` (server computes it).
+     *
+     * @throws WaffarhaRequestException
+     */
+    public function preview(array $payload): Booking
+    {
+        return Booking::fromArray(
+            $this->transport->send('POST', 'bookings/preview', $payload)
+        );
+    }
+
+    /**
      * Create a booking on a Maat unit.
      *
      * The acting provider is resolved server-side from the OAuth client behind
@@ -67,6 +87,22 @@ final class Bookings extends Resource
     {
         return Booking::fromArray(
             $this->transport->send('POST', 'bookings', $payload)
+        );
+    }
+
+    /**
+     * Guest-facing receipt for a booking — JSON mirror of Maat's
+     * `POST /u_book_details`. Always returned in EGP. Separate from
+     * {@see preview()} (which returns a booking-shaped payload).
+     *
+     * @throws WaffarhaRequestException
+     */
+    public function bookDetails(string $bookingUuid): GuestBookDetails
+    {
+        return GuestBookDetails::fromArray(
+            $this->transport->send('POST', 'book_details', [
+                'booking_uuid' => $bookingUuid,
+            ])
         );
     }
 

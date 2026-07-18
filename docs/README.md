@@ -17,14 +17,19 @@ start, see the [project README](../README.md).
 - [`units()->checkAvailability()`](check-availability.md) — confirm a date range + price breakdown (returns `AvailabilityCheck`).
 - [`bookings()->list()`](list-bookings.md) — list bookings (returns `BookingCollection`).
 - [`bookings()->get()`](get-booking.md) — booking details (returns `Booking`).
+- [`bookings()->preview()`](booking-preview.md) — booking-shaped quote before create (returns `Booking`).
 - [`bookings()->create()`](create-booking.md) — create a booking (returns `Booking`).
+- [`bookings()->bookDetails()`](book-details.md) — guest receipt JSON (returns `GuestBookDetails`).
 - [`payouts()->list()`](payouts.md#list) — list per-booking payouts (returns `PayoutCollection`).
 - [`payouts()->get()`](payouts.md#get) — payout details by UUID (returns `Payout`).
 - [`payouts()->submitProof()`](payouts.md#submitproof) — upload the bank-transfer receipt (returns `Payout`).
+- [`whatsapp()->get()`](whatsapp.md) — Maat support WhatsApp contact (returns `WhatsAppContact`).
 - [Custom requests](custom-requests.md) — the generic `request()` escape hatch.
 
 ### Reference
 
+- [Financial fields](financials.md) — every money field (check, booking, receipt), formulas, discount rules.
+- [Booking statuses](booking-statuses.md) — every `status` value and the Waffarha lifecycle.
 - [Data objects](data-objects.md) — field reference for every returned DTO.
 - [Webhooks](webhooks.md) — outbound booking webhooks (Maat → Waffarha).
 - [Error handling](error-handling.md) — exception types and handling.

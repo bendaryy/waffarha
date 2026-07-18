@@ -13,6 +13,10 @@ created, updated, or cancelled. The payload is sent as JSON with these headers:
 | `x-webhook-secret` | The provider's stored shared secret. **Verify before processing.** |
 | `x-webhook-event` | One of `reservation.confirmed`, `reservation.updated`, `reservation.cancelled`. |
 
+`reservation.status` uses the same strings as the REST API — see
+[booking-statuses.md](booking-statuses.md). Partner-safe money fields:
+[financials.md](financials.md).
+
 ## Payload shape
 
 ```json

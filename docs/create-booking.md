@@ -56,8 +56,12 @@ $booking = Waffarha::bookings()->create([
     ],
 ]);
 
-echo $booking->uuid, ' ', $booking->status;
+echo $booking->uuid, ' ', $booking->status; // status is always "Confirmed" on create
 ```
+
+Created bookings start as **`Confirmed`**. Full status list:
+[booking-statuses.md](booking-statuses.md). Money fields:
+[financials.md](financials.md).
 
 ## Response
 
@@ -86,7 +90,10 @@ A 201 returns the persisted booking with a partner-safe `financial` block:
       "discount_amount": 1728,
       "subtotal_after_discount": 15552,
       "cleaning_fee": 1560,
-      "total": 17112
+      "access": 200,
+      "host_tax_rate": 14,
+      "tax_from_host": 2419.2,
+      "total": 19731.2
     },
     "property": { "uuid": "...", "title": "...", "city": "..." },
     "guest": { "name": "Ahmed Mohamed", "...": "..." },
@@ -112,11 +119,17 @@ How `financial` is derived (same pipeline as `/check`):
   as the Maat-coupon branch in `POST /v1/u_book`.
 - `cleaning_fee` — `tbl_property.cleaning_fee` converted to EGP, charged
   once per booking.
-- `total` — `subtotal_after_discount + cleaning_fee` (or
-  `subtotal + cleaning_fee` when no discount). This is the figure to send
-  as `total_amount` on the next create call; if it differs from your
-  number Maat persists the server total and logs a mismatch warning. Same
-  convention as `POST /v1/u_simulate_booking` — commission is **not** added.
+- `access` — `tbl_property.access` converted to EGP, charged once per
+  booking (discount-free).
+- `host_tax_rate` / `tax_from_host` — host property tax
+  (`tbl_property.tax` % on the **original** `subtotal`, Maat-coupon shape).
+  Added to guest `total`; commission-free.
+- `total` — `subtotal_after_discount + cleaning_fee + access +
+  tax_from_host` (or `subtotal + …` when no discount). This is the figure
+  to send as `total_amount` on the next create call; if it differs from
+  your number Maat persists the server total and logs a mismatch warning.
+  Same convention as `POST /v1/u_simulate_booking` — commission is **not**
+  added.
 
 > Maat's commission breakdown (`commission_per_day`, `total_commission`,
 > `net_amount`) is computed on the server and persisted to `tbl_book` so

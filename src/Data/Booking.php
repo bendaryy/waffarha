@@ -51,26 +51,39 @@ final readonly class Booking
     ) {}
 
     /**
-     * @param  BookingPayload  $data
+     * @param  BookingPayload  $data  Either the full API envelope (`booking`
+     *                                key) or the booking object itself.
      */
     public static function fromArray(array $data): self
     {
-        $str = static fn (string $key): ?string => isset($data[$key]) && is_scalar($data[$key])
-            ? (string) $data[$key]
-            : null;
-        $int = static fn (string $key): ?int => isset($data[$key]) && is_scalar($data[$key])
-            ? (int) $data[$key]
-            : null;
+        $payload = isset($data['booking']) && is_array($data['booking'])
+            ? $data['booking']
+            : $data;
 
-        $uuid = $data['uuid'] ?? $data['id'] ?? null;
-        $propertyUuid = $data['property_uuid'] ?? $data['property_id'] ?? null;
-
-        $guest = isset($data['guest']) && is_array($data['guest'])
-            ? Guest::fromArray($data['guest'])
+        $str = static fn (string $key): ?string => isset($payload[$key]) && is_scalar($payload[$key])
+            ? (string) $payload[$key]
+            : null;
+        $int = static fn (string $key): ?int => isset($payload[$key]) && is_scalar($payload[$key])
+            ? (int) $payload[$key]
             : null;
 
-        $financial = isset($data['financial']) && is_array($data['financial'])
-            ? BookingFinancial::fromArray($data['financial'])
+        $uuid = $payload['uuid'] ?? $payload['id'] ?? null;
+
+        $nestedProperty = isset($payload['property']) && is_array($payload['property'])
+            ? $payload['property']
+            : [];
+        $propertyUuid = $payload['property_uuid']
+            ?? $payload['property_id']
+            ?? ($nestedProperty['uuid'] ?? null);
+        $propertyTitle = $payload['property_title']
+            ?? ($nestedProperty['title'] ?? null);
+
+        $guest = isset($payload['guest']) && is_array($payload['guest'])
+            ? Guest::fromArray($payload['guest'])
+            : null;
+
+        $financial = isset($payload['financial']) && is_array($payload['financial'])
+            ? BookingFinancial::fromArray($payload['financial'])
             : null;
 
         return new self(
@@ -78,7 +91,7 @@ final readonly class Booking
             providerBookingId: $str('provider_booking_id'),
             provider: $str('provider'),
             propertyUuid: $propertyUuid !== null && is_scalar($propertyUuid) ? (string) $propertyUuid : null,
-            propertyTitle: $str('property_title'),
+            propertyTitle: $propertyTitle !== null && is_scalar($propertyTitle) ? (string) $propertyTitle : null,
             checkIn: $str('check_in'),
             checkOut: $str('check_out'),
             guestsCount: $int('guests_count') ?? $int('number_of_guests'),
@@ -91,7 +104,7 @@ final readonly class Booking
             guest: $guest,
             createdAt: $str('created_at'),
             updatedAt: $str('updated_at'),
-            attributes: $data,
+            attributes: $payload,
         );
     }
 

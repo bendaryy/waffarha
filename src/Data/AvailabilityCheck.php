@@ -7,13 +7,14 @@ namespace Maat\Waffarha\Data;
 use ArrayIterator;
 use Countable;
 use IteratorAggregate;
+use Maat\Waffarha\Exceptions\WaffarhaRequestException;
 use Traversable;
 
 /**
  * Result of a `POST /waffarha/unit/{uuid}/check` call.
  *
  * A successful (`available === true`) instance comes back from the SDK; an
- * unavailable date range surfaces as a {@see \Maat\Waffarha\Exceptions\WaffarhaRequestException}
+ * unavailable date range surfaces as a {@see WaffarhaRequestException}
  * (HTTP 409) so consumers can `try { } catch { }` the unhappy path without
  * branching on a status code. The exception's `body` carries the same
  * `reason` / `violated_blocks` keys documented in `docs/check-availability.md`.
@@ -48,6 +49,12 @@ final readonly class AvailabilityCheck implements Countable, IteratorAggregate
 
     public ?float $cleaningFee;
 
+    public ?float $access;
+
+    public ?float $hostTaxRate;
+
+    public ?float $taxFromHost;
+
     public ?float $total;
 
     public ?float $commissionPercentage;
@@ -79,6 +86,9 @@ final readonly class AvailabilityCheck implements Countable, IteratorAggregate
         $this->currency = $financial->currency;
         $this->subtotal = $financial->subtotal;
         $this->cleaningFee = $financial->cleaningFee;
+        $this->access = $financial->access;
+        $this->hostTaxRate = $financial->hostTaxRate;
+        $this->taxFromHost = $financial->taxFromHost;
         $this->total = $financial->total;
         $this->commissionPercentage = $financial->commissionPercentage;
         $this->commissionAmount = $financial->commissionAmount;

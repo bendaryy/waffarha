@@ -9,17 +9,20 @@ use Maat\Waffarha\Auth\TokenManager;
 use Maat\Waffarha\Data\AvailabilityCheck;
 use Maat\Waffarha\Data\Booking;
 use Maat\Waffarha\Data\BookingCollection;
+use Maat\Waffarha\Data\GuestBookDetails;
+use Maat\Waffarha\Data\Payout;
+use Maat\Waffarha\Data\PayoutCollection;
 use Maat\Waffarha\Data\UnitCalendar;
 use Maat\Waffarha\Data\UnitCollection;
 use Maat\Waffarha\Data\UnitDetail;
+use Maat\Waffarha\Data\WhatsAppContact;
 use Maat\Waffarha\Exceptions\WaffarhaConfigurationException;
 use Maat\Waffarha\Exceptions\WaffarhaRequestException;
 use Maat\Waffarha\Http\Transport;
-use Maat\Waffarha\Data\Payout;
-use Maat\Waffarha\Data\PayoutCollection;
 use Maat\Waffarha\Resources\Bookings;
 use Maat\Waffarha\Resources\Payouts;
 use Maat\Waffarha\Resources\Units;
+use Maat\Waffarha\Resources\WhatsApp;
 use Maat\Waffarha\WaffarhaClient;
 
 class WaffarhaClientTest extends TestCase
@@ -46,6 +49,40 @@ class WaffarhaClientTest extends TestCase
 
         $this->assertInstanceOf(Payouts::class, $client->payouts());
         $this->assertSame($client->payouts(), $client->payouts(), 'payouts() should return the same instance.');
+    }
+
+    public function test_whatsapp_accessor_returns_a_memoized_resource(): void
+    {
+        $client = $this->app->make(WaffarhaClient::class);
+
+        $this->assertInstanceOf(WhatsApp::class, $client->whatsapp());
+        $this->assertSame($client->whatsapp(), $client->whatsapp(), 'whatsapp() should return the same instance.');
+    }
+
+    public function test_whatsapp_get_returns_typed_contact_from_settings_phone(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/whatsapp' => Http::response([
+                'ResponseCode' => '200',
+                'Result' => 'true',
+                'ResponseMsg' => 'WhatsApp contact retrieved successfully.',
+                'whatsapp' => [
+                    'phone_number' => '01044660885',
+                    'phone_digits' => '201044660885',
+                    'url' => 'https://wa.me/201044660885',
+                    'deep_link' => 'https://api.whatsapp.com/send?phone=201044660885',
+                ],
+            ], 200),
+        ]);
+
+        $contact = $this->app->make(WaffarhaClient::class)->whatsapp()->get();
+
+        $this->assertInstanceOf(WhatsAppContact::class, $contact);
+        $this->assertSame('01044660885', $contact->phoneNumber);
+        $this->assertSame('201044660885', $contact->phoneDigits);
+        $this->assertSame('https://wa.me/201044660885', $contact->url);
+        $this->assertSame('https://api.whatsapp.com/send?phone=201044660885', $contact->deepLink);
     }
 
     private function fakeToken(): void
@@ -497,9 +534,12 @@ class WaffarhaClientTest extends TestCase
                     'currency' => 'EGP',
                     'subtotal' => 4500.00,
                     'cleaning_fee' => 250.00,
+                    'access' => 100.00,
+                    'host_tax_rate' => 14.00,
+                    'tax_from_host' => 630.00,
                     'commission_percentage' => 1.00,
                     'commission_amount' => 45.00,
-                    'total' => 4750.00,
+                    'total' => 5480.00,
                 ],
                 'special_rates_applied' => [
                     [
@@ -602,10 +642,15 @@ class WaffarhaClientTest extends TestCase
         $this->assertSame('EGP', $check->currency);
         $this->assertSame(4500.00, $check->subtotal);
         $this->assertSame(250.00, $check->cleaningFee);
-        $this->assertSame(4750.00, $check->total);
+        $this->assertSame(100.00, $check->access);
+        $this->assertSame(14.00, $check->hostTaxRate);
+        $this->assertSame(630.00, $check->taxFromHost);
+        $this->assertSame(5480.00, $check->total);
         $this->assertSame(1.00, $check->commissionPercentage);
         $this->assertSame(45.00, $check->commissionAmount);
         $this->assertSame('EGP', $check->financial->currency);
+        $this->assertSame(100.00, $check->financial->access);
+        $this->assertSame(630.00, $check->financial->taxFromHost);
         $this->assertSame(45.00, $check->financial->commissionAmount);
         $this->assertNotNull($check->property);
         $this->assertSame('u-1', $check->property->uuid);
@@ -737,9 +782,121 @@ class WaffarhaClientTest extends TestCase
             $this->fail('Expected WaffarhaRequestException was not thrown.');
         } catch (WaffarhaRequestException $e) {
             $this->assertSame(409, $e->status);
-            $this->assertIsArray($e->body);
-            $this->assertSame('booking_overlap', $e->body['reason'] ?? null);
+            $this->assertIsString($e->body);
+            $decoded = json_decode((string) $e->body, true);
+            $this->assertIsArray($decoded);
+            $this->assertSame('booking_overlap', $decoded['reason'] ?? null);
         }
+    }
+
+    public function test_book_details_returns_guest_receipt_payload(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/book_details' => Http::response([
+                'bookdetails' => [
+                    'currency' => 'EGP',
+                    'uuid' => 'b-1',
+                    'title' => 'Catalina Updated',
+                    'check_in' => '2026-08-12',
+                    'check_out' => '2026-08-15',
+                    'total_day' => 3,
+                    'guest_name' => 'Ahmed Mohamed',
+                    'subtotal' => 4500.00,
+                    'cleaning_fee' => 250.00,
+                    'access' => 100.00,
+                    'host_tax_rate' => 14.00,
+                    'tax_from_host' => 630.00,
+                    'total' => 5480.00,
+                    'day_breakdown' => [
+                        ['date' => '2026-08-12', 'price' => 1500.00],
+                    ],
+                    'financial_summary' => [
+                        'currency' => 'EGP',
+                        'total_amount' => 5480.00,
+                        'access' => 100.00,
+                        'tax_from_host' => 630.00,
+                    ],
+                ],
+                'ResponseCode' => '200',
+                'Result' => 'true',
+                'ResponseMsg' => 'Book Property Details Founded!',
+            ], 200),
+        ]);
+
+        $receipt = $this->app->make(WaffarhaClient::class)
+            ->bookings()
+            ->bookDetails('b-1');
+
+        $this->assertInstanceOf(GuestBookDetails::class, $receipt);
+        $this->assertSame('EGP', $receipt->currency);
+        $this->assertSame('b-1', $receipt->uuid);
+        $this->assertSame(4500.00, $receipt->subtotal);
+        $this->assertSame(100.00, $receipt->access);
+        $this->assertSame(630.00, $receipt->taxFromHost);
+        $this->assertSame(5480.00, $receipt->total);
+        $this->assertSame('Ahmed Mohamed', $receipt->guestName);
+        $this->assertSame('Ahmed Mohamed', $receipt->get('guest_name'));
+    }
+
+    public function test_preview_returns_booking_shaped_payload_like_create(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/bookings/preview' => Http::response([
+                'ResponseCode' => '200',
+                'Result' => 'true',
+                'ResponseMsg' => 'Booking preview computed successfully.',
+                'booking' => [
+                    'id' => null,
+                    'provider' => 'Waffarha',
+                    'status' => null,
+                    'check_in' => '2026-08-12',
+                    'check_out' => '2026-08-15',
+                    'total_days' => 3,
+                    'guests_count' => 2,
+                    'total_amount' => 5480.00,
+                    'currency' => 'EGP',
+                    'financial' => [
+                        'currency' => 'EGP',
+                        'subtotal' => 4500.00,
+                        'cleaning_fee' => 250.00,
+                        'access' => 100.00,
+                        'host_tax_rate' => 14.00,
+                        'tax_from_host' => 630.00,
+                        'total' => 5480.00,
+                    ],
+                    'property' => [
+                        'uuid' => 'u-1',
+                        'title' => 'Catalina Updated',
+                        'city' => 'Cairo',
+                    ],
+                    'guest' => ['name' => 'Ahmed Mohamed'],
+                    'breakdown' => [
+                        ['date' => '2026-08-12', 'price' => 1500.00],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $preview = $this->app->make(WaffarhaClient::class)
+            ->bookings()
+            ->preview([
+                'property_uuid' => 'u-1',
+                'check_in' => '2026-08-12',
+                'check_out' => '2026-08-15',
+                'guests_count' => 2,
+                'guest' => ['name' => 'Ahmed Mohamed'],
+            ]);
+
+        $this->assertInstanceOf(Booking::class, $preview);
+        $this->assertSame('EGP', $preview->currency);
+        $this->assertSame('5480', $preview->totalAmount);
+        $this->assertSame('u-1', $preview->propertyUuid);
+        $this->assertSame(100.00, $preview->financial?->access);
+        $this->assertSame(630.00, $preview->financial?->taxFromHost);
+        $this->assertSame(5480.00, $preview->financial?->total);
+        $this->assertSame('Ahmed Mohamed', $preview->guest?->name);
     }
 
     public function test_a_failed_bookings_response_throws_a_typed_request_exception(): void

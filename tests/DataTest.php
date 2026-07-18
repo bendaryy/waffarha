@@ -14,6 +14,7 @@ use Maat\Waffarha\Data\Unit;
 use Maat\Waffarha\Data\UnitCalendar;
 use Maat\Waffarha\Data\UnitCalendarDay;
 use Maat\Waffarha\Data\UnitCollection;
+use Maat\Waffarha\Data\WhatsAppContact;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 
 class DataTest extends BaseTestCase
@@ -357,5 +358,24 @@ class DataTest extends BaseTestCase
         ]);
         $this->assertCount(1, $fromBareList);
         $this->assertSame('uuid-9', $fromBareList->items[0]->uuid);
+    }
+
+    public function test_whatsapp_contact_unwraps_envelope_and_maps_fields(): void
+    {
+        $contact = WhatsAppContact::fromArray([
+            'ResponseCode' => '200',
+            'whatsapp' => [
+                'phone_number' => '01044660885',
+                'phone_digits' => '201044660885',
+                'url' => 'https://wa.me/201044660885',
+                'deep_link' => 'https://api.whatsapp.com/send?phone=201044660885',
+            ],
+        ]);
+
+        $this->assertSame('01044660885', $contact->phoneNumber);
+        $this->assertSame('201044660885', $contact->phoneDigits);
+        $this->assertSame('https://wa.me/201044660885', $contact->url);
+        $this->assertSame('https://api.whatsapp.com/send?phone=201044660885', $contact->deepLink);
+        $this->assertSame('01044660885', $contact->get('phone_number'));
     }
 }

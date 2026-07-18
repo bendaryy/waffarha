@@ -322,16 +322,23 @@ Date summary returned inside `AvailabilityCheck::$bookingDates`.
 ### AvailabilityFinancial
 
 Money block returned inside `AvailabilityCheck::$financial`. All amounts are
-in `$currency` (always `"EGP"` today).
+in `$currency` (always `"EGP"` today). Cross-endpoint matrix and formulas:
+**[financials.md](financials.md)**.
 
 | Property | Type | Source key |
 |----------|------|-----------|
 | `currency` | `?string` | `currency` |
 | `subtotal` | `?float` | `subtotal` — sum of nightly prices (EGP, rounded to 2 decimals) |
+| `discountPercentage` | `?float` | `discount_percentage` — set when request sent `discount_in_percentage` |
+| `discountAmount` | `?float` | `discount_amount` |
+| `subtotalAfterDiscount` | `?float` | `subtotal_after_discount` |
 | `cleaningFee` | `?float` | `cleaning_fee` — one-time per-booking cleaning fee (EGP). `0.0` when the host has not configured one; `null` only on older API responses that omitted the field |
+| `access` | `?float` | `access` — one-time access fee (`tbl_property.access`, EGP). `null` on older responses |
+| `hostTaxRate` | `?float` | `host_tax_rate` — host property tax % from `tbl_property.tax`. `null` on older responses |
+| `taxFromHost` | `?float` | `tax_from_host` — `subtotal × host_tax_rate / 100` (on original subtotal). `null` on older responses |
 | `commissionPercentage` | `?float` | `commission_percentage` — Maat's platform commission rate from `tbl_setting.commission` (e.g. `1.00` = 1%). `null` on older responses |
 | `commissionAmount` | `?float` | `commission_amount` — `subtotal × commission_percentage / 100`, rounded to 2 decimals. **Not** added to `total` — reported separately so partners can reconcile against Maat's host payouts (same convention as `v1/u_simulate_booking`) |
-| `total` | `?float` | `total` — `subtotal + cleaning_fee`. Falls back to `subtotal + (cleaning_fee ?? 0)` for older API responses that did not send `total` |
+| `total` | `?float` | `total` — `subtotal_after_discount + cleaning_fee + access + tax_from_host`. Falls back to that sum for older API responses that did not send `total` |
 
 ### AvailabilityProperty
 
@@ -446,7 +453,7 @@ Methods: `count()`, `getIterator()`, `toArray(): array` (raw rows).
 | `guestsCount` | `?int` | `guests_count` (falls back to `number_of_guests`) |
 | `totalAmount` | `?string` | `total_amount` |
 | `currency` | `?string` | `currency` |
-| `status` | `?string` | `status` |
+| `status` | `?string` | `status` — see [booking-statuses.md](booking-statuses.md) |
 | `cancellationReason` | `?string` | `cancellation_reason` |
 | `notes` | `?string` | `notes` |
 | `financial` | `?BookingFinancial` | `financial` (block — see below) |
@@ -463,16 +470,51 @@ Nested under `Booking::$financial`. Partner-safe slice of the financial
 record Maat persisted to `tbl_book` after running the server-side pricing
 pipeline. All monetary values are floats in EGP.
 
+Full formulas, discount rules, and a field matrix across check / booking /
+receipt: **[financials.md](financials.md)**.
+
 | Property | Type | Source key | Notes |
 |----------|------|-----------|-------|
 | `currency` | `string` | `currency` | Always `"EGP"`. |
 | `subtotal` | `float` | `subtotal` | Sum of every night's `price` from `units()->checkAvailability()`. |
+| `discountPercentage` | `?float` | `discount_percentage` | Only when a Waffarha % discount applied; otherwise omitted/`null`. |
+| `discountAmount` | `?float` | `discount_amount` | Only when discount applied. |
+| `subtotalAfterDiscount` | `?float` | `subtotal_after_discount` | Only when discount applied. |
 | `cleaningFee` | `float` | `cleaning_fee` | `tbl_property.cleaning_fee` in EGP — one-time. |
-| `total` | `float` | `total` | `subtotal + cleaning_fee` — what the partner is billed. Commission is **not** added (same as `/v1/u_simulate_booking`). |
+| `access` | `float` | `access` | `tbl_property.access` in EGP — one-time. |
+| `hostTaxRate` | `float` | `host_tax_rate` | Host property tax % (`tbl_property.tax`). |
+| `taxFromHost` | `float` | `tax_from_host` | Host tax amount on original subtotal. |
+| `total` | `float` | `total` | `subtotal_after_discount + cleaning_fee + access + tax_from_host` — what the partner is billed. Commission is **not** added (same as `/v1/u_simulate_booking`). |
 
 > Maat's commission breakdown (commission per day, total commission, net
 > amount) is computed and persisted to `tbl_book` for host payouts but is
 > never exposed on this DTO — that's internal accounting.
+
+### GuestBookDetails
+
+Returned by [`bookings()->bookDetails()`](book-details.md) only. Guest
+receipt payload (always EGP). Preview uses [`Booking`](#booking) instead.
+Full `bookdetails` object is in `$attributes`.
+
+| Property | Type | Source key |
+|----------|------|-----------|
+| `currency` | `?string` | `currency` (always `"EGP"`) |
+| `uuid` | `?string` | `uuid` |
+| `title` | `?string` | `title` |
+| `checkIn` / `checkOut` | `?string` | `check_in` / `check_out` |
+| `totalDay` | `?int` | `total_day` |
+| `subtotal` | `?float` | `subtotal` |
+| `cleaningFee` | `?float` | `cleaning_fee` |
+| `access` | `?float` | `access` |
+| `hostTaxRate` | `?float` | `host_tax_rate` |
+| `taxFromHost` | `?float` | `tax_from_host` |
+| `total` | `?float` | `total` |
+| `guestName` | `?string` | `guest_name` |
+| `dayBreakdown` | `list<array>` | `day_breakdown` |
+| `financialSummary` | `array` | `financial_summary` |
+| `attributes` | `array` | full `bookdetails` object |
+
+Methods: `get(string $key, mixed $default = null)`, `toArray()`.
 
 ### Guest
 
@@ -528,5 +570,22 @@ decoded payload is always retained.
 | `createdAt` | `?string` | `created_at` (`Y-m-d H:i:s`) |
 | `updatedAt` | `?string` | `updated_at` (`Y-m-d H:i:s`) |
 | `attributes` | `array<string,mixed>` | full decoded object |
+
+Methods: `get(string $key, mixed $default = null)`, `toArray()`.
+
+## Returned by `whatsapp()->get()`
+
+### WhatsAppContact
+
+Maat support WhatsApp contact from `tbl_setting.app_phone_number`. See
+[whatsapp.md](whatsapp.md).
+
+| Property | Type | Source key |
+|----------|------|-----------|
+| `phoneNumber` | `?string` | `phone_number` — as stored in settings |
+| `phoneDigits` | `?string` | `phone_digits` — international digits for WhatsApp |
+| `url` | `?string` | `url` — `https://wa.me/{phone_digits}` |
+| `deepLink` | `?string` | `deep_link` — `https://api.whatsapp.com/send?phone={phone_digits}` |
+| `attributes` | `array<string,mixed>` | full decoded `whatsapp` object |
 
 Methods: `get(string $key, mixed $default = null)`, `toArray()`.

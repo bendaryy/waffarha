@@ -9,6 +9,7 @@ use Maat\Waffarha\Http\Transport;
 use Maat\Waffarha\Resources\Bookings;
 use Maat\Waffarha\Resources\Payouts;
 use Maat\Waffarha\Resources\Units;
+use Maat\Waffarha\Resources\WhatsApp;
 
 /**
  * Entry point for the Waffarha API. Endpoints are grouped into resource classes
@@ -25,6 +26,8 @@ class WaffarhaClient
 
     private ?Payouts $payouts = null;
 
+    private ?WhatsApp $whatsapp = null;
+
     public function __construct(
         private readonly Transport $transport,
     ) {}
@@ -39,7 +42,7 @@ class WaffarhaClient
     }
 
     /**
-     * The `bookings` API: list, fetch, and create provider bookings.
+     * The `bookings` API: list, fetch, create, and guest `bookDetails()`.
      */
     public function bookings(): Bookings
     {
@@ -54,6 +57,14 @@ class WaffarhaClient
     public function payouts(): Payouts
     {
         return $this->payouts ??= new Payouts($this->transport);
+    }
+
+    /**
+     * Maat support WhatsApp contact (`tbl_setting.app_phone_number`).
+     */
+    public function whatsapp(): WhatsApp
+    {
+        return $this->whatsapp ??= new WhatsApp($this->transport);
     }
 
     /**

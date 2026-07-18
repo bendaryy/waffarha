@@ -10,12 +10,12 @@ namespace Maat\Waffarha\Data;
  * collection list, plus the outbound `reservation.*` webhooks).
  *
  * Only fields the partner needs for reconciliation (subtotal, optional
- * discount, cleaning fee, total) are exposed — commission / net-amount stay
- * internal to Maat. The `total` here is the server-computed amount that
- * landed on `tbl_book.total` (Maat re-runs the same pipeline as
- * `units()->checkAvailability()`), so it is the authoritative number even
- * when it differs from the `total_amount` the partner sent in the create
- * request.
+ * discount, cleaning fee, access, host tax, total) are exposed — commission
+ * / net-amount stay internal to Maat. The `total` here is the
+ * server-computed amount that landed on `tbl_book.total` (Maat re-runs the
+ * same pipeline as `units()->checkAvailability()`), so it is the
+ * authoritative number even when it differs from the `total_amount` the
+ * partner sent in the create request.
  *
  * Discount keys (`discountPercentage`, `discountAmount`,
  * `subtotalAfterDiscount`) are populated only when the booking was created
@@ -33,6 +33,9 @@ final readonly class BookingFinancial
         public ?float $discountAmount,
         public ?float $subtotalAfterDiscount,
         public float $cleaningFee,
+        public float $access,
+        public float $hostTaxRate,
+        public float $taxFromHost,
         public float $total,
     ) {}
 
@@ -57,6 +60,9 @@ final readonly class BookingFinancial
             discountAmount: $nullableFloat('discount_amount'),
             subtotalAfterDiscount: $nullableFloat('subtotal_after_discount'),
             cleaningFee: $float('cleaning_fee'),
+            access: $float('access'),
+            hostTaxRate: $float('host_tax_rate'),
+            taxFromHost: $float('tax_from_host'),
             total: $float('total'),
         );
     }

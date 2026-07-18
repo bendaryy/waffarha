@@ -60,9 +60,12 @@ window during which somebody else might book the same dates).
     "discount_amount": 450.00,
     "subtotal_after_discount": 4050.00,
     "cleaning_fee": 250.00,
+    "access": 100.00,
+    "host_tax_rate": 14.00,
+    "tax_from_host": 630.00,
     "commission_percentage": 1.00,
     "commission_amount": 45.00,
-    "total": 4300.00
+    "total": 5030.00
   },
   "special_rates_applied": [
     {
@@ -155,17 +158,19 @@ All money fields live under the `financial` block:
 - `cleaning_fee` is a **one-time** charge per booking (not per night),
   already converted to EGP. It is `0` when the host has not configured a
   cleaning fee for the unit.
-- `total` = `subtotal + cleaning_fee` — this is the headline number the
-  partner should display to the guest and is the figure the subsequent
-  [`bookings()->create()`](create-booking.md) call expects.
+- `access` is a **one-time** access fee (`tbl_property.access`, EGP).
+- `host_tax_rate` / `tax_from_host` — host property tax on the **original**
+  `subtotal` (Maat-coupon shape). Added to guest `total`; commission-free.
+- `total` = `subtotal + cleaning_fee + access + tax_from_host` — this is
+  the headline number the partner should display to the guest and is the
+  figure the subsequent [`bookings()->create()`](create-booking.md) call
+  expects.
 - `commission_percentage` is Maat's platform commission rate (read from
   `tbl_setting.commission`, e.g. `1.00` means 1%).
 - `commission_amount` is the calculated commission applied to `subtotal`
-  (cleaning fee is commission-free, mirroring the booking flow).
-  Commission is reported separately and **not** added to `total` — same
-  convention as `POST /v1/u_simulate_booking` on the regular Maat surface.
-  It is exposed so partners can reconcile their share with Maat's host
-  payouts.
+  (cleaning / access / tax_from_host are commission-free). Commission is
+  reported separately and **not** added to `total` — same convention as
+  `POST /v1/u_simulate_booking` on the regular Maat surface.
 
 ## Response — `409 Conflict` (unavailable)
 
@@ -222,8 +227,9 @@ try {
 > `base price → SpecialRate → weekend percentage` pipeline as the real
 > booking flow, in EGP — it will match the sum of the per-night prices you'd
 > read from [`calendar()`](unit-calendar.md) for the same nights. The
-> `cleaning_fee` mirrors `tbl_property.cleaning_fee` (converted to EGP),
-> and `total = subtotal + cleaning_fee` is the figure to send as
-> `total_amount` in [`bookings()->create()`](create-booking.md).
+> `cleaning_fee` / `access` mirror `tbl_property` (converted to EGP),
+> `tax_from_host` uses `tbl_property.tax` on the original subtotal, and
+> `total = subtotal + cleaning_fee + access + tax_from_host` is the figure
+> to send as `total_amount` in [`bookings()->create()`](create-booking.md).
 > `commission_*` mirrors `tbl_setting.commission` (applied to `subtotal`)
 > and is reported separately — same convention as `v1/u_simulate_booking`.
