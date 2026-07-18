@@ -81,7 +81,7 @@ You can also resolve the client via dependency injection
 | [`payouts()->list()`](docs/payouts.md#list) | List per-booking payouts (returns `PayoutCollection`) |
 | [`payouts()->get()`](docs/payouts.md#get) | Payout details by UUID (returns `Payout`) |
 | [`payouts()->submitProof()`](docs/payouts.md#submitproof) | Upload the bank-transfer receipt for an open payout |
-| [`whatsapp()->get()`](docs/whatsapp.md) | Maat support WhatsApp (`tbl_setting.app_phone_number`) |
+| [`whatsapp()->get()`](docs/whatsapp.md) | Maat support WhatsApp |
 | [Financial fields](docs/financials.md) | All money fields (check / booking / receipt), formulas, discounts |
 | [Booking statuses](docs/booking-statuses.md) | All `status` values and Waffarha lifecycle |
 | [Webhooks](docs/webhooks.md) | Outbound booking webhooks (Maat → Waffarha) |

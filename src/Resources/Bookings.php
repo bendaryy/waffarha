@@ -91,9 +91,9 @@ final class Bookings extends Resource
     }
 
     /**
-     * Guest-facing receipt for a booking — JSON mirror of Maat's
-     * `POST /u_book_details`. Always returned in EGP. Separate from
-     * {@see preview()} (which returns a booking-shaped payload).
+     * Guest-facing receipt for a booking (`POST /waffarha/book_details`).
+     * Always returned in EGP. Separate from {@see preview()} (which returns
+     * a booking-shaped payload).
      *
      * @throws WaffarhaRequestException
      */

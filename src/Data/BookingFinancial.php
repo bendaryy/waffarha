@@ -12,15 +12,14 @@ namespace Maat\Waffarha\Data;
  * Only fields the partner needs for reconciliation (subtotal, optional
  * discount, cleaning fee, access, host tax, total) are exposed — commission
  * / net-amount stay internal to Maat. The `total` here is the
- * server-computed amount that landed on `tbl_book.total` (Maat re-runs the
- * same pipeline as `units()->checkAvailability()`), so it is the
- * authoritative number even when it differs from the `total_amount` the
- * partner sent in the create request.
+ * server-computed amount (Maat re-runs the same pipeline as
+ * `units()->checkAvailability()`), so it is the authoritative number even
+ * when it differs from the `total_amount` the partner sent in the create
+ * request.
  *
  * Discount keys (`discountPercentage`, `discountAmount`,
  * `subtotalAfterDiscount`) are populated only when the booking was created
- * with `discount_in_percentage` (Maat-coupon-style discount sourced from
- * Waffarha). When absent they are all `null`.
+ * with `discount_in_percentage`. When absent they are all `null`.
  *
  * All monetary fields are floats in EGP.
  */

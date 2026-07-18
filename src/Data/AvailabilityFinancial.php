@@ -18,21 +18,19 @@ use Maat\Waffarha\Resources\Bookings;
  *    applied so partners can branch on `discountPercentage`.
  *  - `$cleaningFee` is the one-time per-booking cleaning fee (`0.0` when
  *    the host has not configured one). Discounts never apply to it.
- *  - `$access` is the one-time access fee (`tbl_property.access`, EGP).
- *    Discounts never apply to it.
- *  - `$hostTaxRate` / `$taxFromHost` are the host property tax
- *    (`tbl_property.tax` % on the **original** subtotal — Maat-coupon
- *    shape). Added to guest `total`; commission-free.
+ *  - `$access` is the one-time access fee (EGP). Discounts never apply to it.
+ *  - `$hostTaxRate` / `$taxFromHost` are the host property tax (% on the
+ *    **original** subtotal). Added to guest `total`; commission-free.
  *  - `$total` = `$subtotalAfterDiscount + $cleaningFee + $access +
  *    $taxFromHost` (or `$subtotal + …` when no discount) — this is the
  *    headline figure the partner should display to the guest and send
  *    back as `total_amount` on {@see Bookings::create()}.
- *  - `$commissionPercentage` mirrors `tbl_setting.commission` (e.g. `1.00`
- *    means 1%), and `$commissionAmount` is calculated against the
- *    **original `$subtotal`** (NOT `$subtotalAfterDiscount`) — exactly
- *    like a Maat coupon, where Maat eats the discount and the host is
- *    paid as if no discount existed. Cleaning fee / access / tax_from_host
- *    are always commission-free. Commission is **NOT** added to `$total`.
+ *  - `$commissionPercentage` is Maat's platform rate (e.g. `1.00` means 1%),
+ *    and `$commissionAmount` is calculated against the **original
+ *    `$subtotal`** (NOT `$subtotalAfterDiscount`) — Maat absorbs the
+ *    discount so the host is paid as if none existed. Cleaning fee /
+ *    access / tax_from_host are always commission-free. Commission is
+ *    **NOT** added to `$total`.
  *
  * @phpstan-type FinancialPayload array{currency?: string|null, subtotal?: int|float|string|null, discount_percentage?: int|float|string|null, discount_amount?: int|float|string|null, subtotal_after_discount?: int|float|string|null, cleaning_fee?: int|float|string|null, access?: int|float|string|null, host_tax_rate?: int|float|string|null, tax_from_host?: int|float|string|null, commission_percentage?: int|float|string|null, commission_amount?: int|float|string|null, total?: int|float|string|null}
  */

@@ -10,7 +10,6 @@ namespace Maat\Waffarha\Data;
  * with a relaxed minimum (Maat does this automatically to avoid leaving
  * tiny holes in the calendar that would otherwise sit empty).
  *
- * Ported from v1's `tbl_book` calendar:
  *  - `$startDate` / `$endDate` — inclusive bookable range (Y-m-d).
  *  - `$gapNights` — number of nights inside the gap.
  *  - `$baseMinimumStay` — the property's normal minimum, surfaced so

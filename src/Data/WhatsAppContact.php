@@ -7,8 +7,7 @@ namespace Maat\Waffarha\Data;
 /**
  * Maat support WhatsApp contact returned by `GET /waffarha/whatsapp`.
  *
- * Phone comes from Maat `tbl_setting.app_phone_number`. Digits / URLs are
- * normalised for WhatsApp deep links.
+ * Digits / URLs are normalised for WhatsApp deep links.
  *
  * @phpstan-type WhatsAppContactPayload array<string, mixed>
  */

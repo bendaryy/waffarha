@@ -10,10 +10,9 @@ use Maat\Waffarha\Resources\Bookings;
  * Guest-facing receipt returned by `POST /waffarha/book_details`
  * ({@see Bookings::bookDetails()}).
  *
- * Mirrors Maat's `POST /u_book_details` envelope: a `bookdetails` object
- * with day breakdown + financial summary. Always in EGP. The full decoded
- * `bookdetails` payload is retained in {@see self::$attributes} so fields
- * not promoted here are never lost.
+ * Shape is a `bookdetails` object with day breakdown + financial summary.
+ * Always in EGP. The full decoded `bookdetails` payload is retained in
+ * {@see self::$attributes} so fields not promoted here are never lost.
  *
  * @phpstan-type GuestBookDetailsPayload array<string, mixed>
  */

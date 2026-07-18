@@ -100,9 +100,9 @@ into a calendar UI:
 
 | Field | Type | Meaning |
 |-------|------|---------|
-| `same_day_booking` | `bool` | Whether `tbl_property.same_day_booking` lets a new guest check in on the same day someone else is checking out. When `false`, `available_for_checkin` is forced to `false` on existing check-out days. |
+| `same_day_booking` | `bool` | Whether the host allows a new guest to check in on the same day someone else is checking out. When `false`, `available_for_checkin` is forced to `false` on existing check-out days. |
 | `blocklist` | `string[]` | Sorted unique list of host-blocked dates (Y-m-d). Already mirrored per-day on `is_booked`, but exposed here so partners can render block bars without iterating the whole calendar. |
-| `orphan_gaps` | `OrphanGap[]` | Short bookable gaps between existing bookings/blocks that are smaller than `tbl_property.minimum_days`. Maat relaxes the minimum stay for these ranges so the calendar doesn't carry tiny unfillable holes. Each entry carries `{start_date, end_date, gap_nights, base_minimum_stay, dynamic_minimum_nights}`. |
+| `orphan_gaps` | `OrphanGap[]` | Short bookable gaps between existing bookings/blocks that are smaller than the unit's minimum stay. Maat relaxes the minimum stay for these ranges so the calendar doesn't carry tiny unfillable holes. Each entry carries `{start_date, end_date, gap_nights, base_minimum_stay, dynamic_minimum_nights}`. |
 
 ### `reason` (UI hint)
 
@@ -112,7 +112,7 @@ day, the higher-priority one wins (in the order below):
 | Value | Meaning | `available` |
 |-------|---------|-------------|
 | `"booked"` | Existing non-cancelled booking that night. | `false` |
-| `"blocked"` | Host has manually blocked this day (`tbl_blocked_dates` / `property_availability_blocks`). | `false` |
+| `"blocked"` | Host has manually blocked this day. | `false` |
 | `"linked_date"` | Day is inside an active minimum-stay rule — still individually available, but bookable **only** as part of a stay that satisfies the rule. Scan the top-level `linked_dates` list and pick the entry whose `start_date`..`end_date` covers this day. | `true` |
 | `"special_rate"` | Available; `price` reflects an active `SpecialRate` window. | `true` |
 | `"weekend_rate"` | Available; `price` reflects the property's weekend percentage. | `true` |

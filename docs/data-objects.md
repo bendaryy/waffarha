@@ -333,10 +333,10 @@ in `$currency` (always `"EGP"` today). Cross-endpoint matrix and formulas:
 | `discountAmount` | `?float` | `discount_amount` |
 | `subtotalAfterDiscount` | `?float` | `subtotal_after_discount` |
 | `cleaningFee` | `?float` | `cleaning_fee` — one-time per-booking cleaning fee (EGP). `0.0` when the host has not configured one; `null` only on older API responses that omitted the field |
-| `access` | `?float` | `access` — one-time access fee (`tbl_property.access`, EGP). `null` on older responses |
-| `hostTaxRate` | `?float` | `host_tax_rate` — host property tax % from `tbl_property.tax`. `null` on older responses |
+| `access` | `?float` | `access` — one-time access fee (EGP). `null` on older responses |
+| `hostTaxRate` | `?float` | `host_tax_rate` — host property tax %. `null` on older responses |
 | `taxFromHost` | `?float` | `tax_from_host` — `subtotal × host_tax_rate / 100` (on original subtotal). `null` on older responses |
-| `commissionPercentage` | `?float` | `commission_percentage` — Maat's platform commission rate from `tbl_setting.commission` (e.g. `1.00` = 1%). `null` on older responses |
+| `commissionPercentage` | `?float` | `commission_percentage` — Maat's platform commission rate (e.g. `1.00` = 1%). `null` on older responses |
 | `commissionAmount` | `?float` | `commission_amount` — `subtotal × commission_percentage / 100`, rounded to 2 decimals. **Not** added to `total` — reported separately |
 | `total` | `?float` | `total` — `subtotal_after_discount + cleaning_fee + access + tax_from_host`. Falls back to that sum for older API responses that did not send `total` |
 
@@ -467,8 +467,8 @@ Methods: `get(string $key, mixed $default = null)`, `toArray()`.
 ### BookingFinancial
 
 Nested under `Booking::$financial`. Partner-safe slice of the financial
-record Maat persisted to `tbl_book` after running the server-side pricing
-pipeline. All monetary values are floats in EGP.
+record Maat persists after running the server-side pricing pipeline. All
+monetary values are floats in EGP.
 
 Full formulas, discount rules, and a field matrix across check / booking /
 receipt: **[financials.md](financials.md)**.
@@ -480,15 +480,15 @@ receipt: **[financials.md](financials.md)**.
 | `discountPercentage` | `?float` | `discount_percentage` | Only when a Waffarha % discount applied; otherwise omitted/`null`. |
 | `discountAmount` | `?float` | `discount_amount` | Only when discount applied. |
 | `subtotalAfterDiscount` | `?float` | `subtotal_after_discount` | Only when discount applied. |
-| `cleaningFee` | `float` | `cleaning_fee` | `tbl_property.cleaning_fee` in EGP — one-time. |
-| `access` | `float` | `access` | `tbl_property.access` in EGP — one-time. |
-| `hostTaxRate` | `float` | `host_tax_rate` | Host property tax % (`tbl_property.tax`). |
+| `cleaningFee` | `float` | `cleaning_fee` | One-time cleaning fee in EGP. |
+| `access` | `float` | `access` | One-time access fee in EGP. |
+| `hostTaxRate` | `float` | `host_tax_rate` | Host property tax %. |
 | `taxFromHost` | `float` | `tax_from_host` | Host tax amount on original subtotal. |
 | `total` | `float` | `total` | `subtotal_after_discount + cleaning_fee + access + tax_from_host` — what the partner is billed. Commission is **not** added. |
 
 > Maat's commission breakdown (commission per day, total commission, net
-> amount) is computed and persisted to `tbl_book` for host payouts but is
-> never exposed on this DTO — that's internal accounting.
+> amount) is computed server-side for host payouts but is never exposed on
+> this DTO — that's internal accounting.
 
 ### GuestBookDetails
 
@@ -577,8 +577,7 @@ Methods: `get(string $key, mixed $default = null)`, `toArray()`.
 
 ### WhatsAppContact
 
-Maat support WhatsApp contact from `tbl_setting.app_phone_number`. See
-[whatsapp.md](whatsapp.md).
+Maat support WhatsApp. See [whatsapp.md](whatsapp.md).
 
 | Property | Type | Source key |
 |----------|------|-----------|

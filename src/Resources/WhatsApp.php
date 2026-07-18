@@ -8,9 +8,7 @@ use Maat\Waffarha\Data\WhatsAppContact;
 use Maat\Waffarha\Exceptions\WaffarhaRequestException;
 
 /**
- * Maat support WhatsApp contact (`GET /waffarha/whatsapp`).
- *
- * Phone number is sourced server-side from `tbl_setting.app_phone_number`.
+ * Maat support WhatsApp (`GET /waffarha/whatsapp`).
  */
 final class WhatsApp extends Resource
 {

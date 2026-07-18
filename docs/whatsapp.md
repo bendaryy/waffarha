@@ -1,8 +1,6 @@
 # `whatsapp()->get()` — Maat support WhatsApp
 
-Fetch Maat’s support WhatsApp number and deep links. The phone is read
-server-side from `tbl_setting.app_phone_number` (same number used across the
-Maat app).
+Fetch Maat’s support WhatsApp number and deep links.
 
 ```php
 Waffarha::whatsapp()->get(): WhatsAppContact
@@ -42,4 +40,4 @@ echo $whatsapp->deepLink;     // https://api.whatsapp.com/send?phone=20104466088
 ```
 
 Egyptian local mobiles (`01xxxxxxxxx`) are normalised to `20…` digits for
-WhatsApp links. If the setting is empty, Maat returns HTTP **404**.
+WhatsApp links. If the number is not configured, Maat returns HTTP **404**.

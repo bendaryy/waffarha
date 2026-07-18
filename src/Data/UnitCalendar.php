@@ -35,7 +35,7 @@ use Traversable;
  *
  * @implements IteratorAggregate<int, UnitCalendarDay>
  *
- * Top-level fields ported verbatim from v1's `tbl_book` calendar:
+ * Top-level fields:
  *  - {@see UnitCalendar::$blocklist} — sorted unique list of host-blocked
  *    dates (Y-m-d). Already mirrored per-day on `UnitCalendarDay::$isBooked`,
  *    but exposed here too so partners can render block bars without

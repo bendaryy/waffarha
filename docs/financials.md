@@ -16,8 +16,8 @@ When there is no discount, `subtotal_after_discount` = `subtotal`.
 tax_from_host = round(subtotal × host_tax_rate / 100, 2)
 ```
 
-Host tax is always on the **original** `subtotal` (Maat-coupon shape), even
-when `discount_in_percentage` is set. Cleaning fee, access, and host tax are
+Host tax is always on the **original** `subtotal`, even when
+`discount_in_percentage` is set. Cleaning fee, access, and host tax are
 never discounted.
 
 Commission is **not** part of `total`.
@@ -34,8 +34,8 @@ Commission is **not** part of `total`.
 | `discount_amount` | ✓* | ✓* | ✓* | Only when discount applied |
 | `subtotal_after_discount` | ✓* | ✓* | ✓* | Only when discount applied |
 | `cleaning_fee` | ✓ | ✓ | ✓ | One-time |
-| `access` | ✓ | ✓ | ✓ | One-time (`tbl_property.access`) |
-| `host_tax_rate` | ✓ | ✓ | ✓ | `%` from `tbl_property.tax` |
+| `access` | ✓ | ✓ | ✓ | One-time access fee |
+| `host_tax_rate` | ✓ | ✓ | ✓ | Host property tax % |
 | `tax_from_host` | ✓ | ✓ | ✓ | Amount on original subtotal |
 | `total` | ✓ | ✓ | ✓† | Guest payable total |
 | `commission_percentage` | ✓ | — | — | Check only (informational) |
@@ -135,8 +135,8 @@ was stored on the booking.
 
 ## Never exposed to partners
 
-These are computed and stored on `tbl_book` for Maat host accounting, but are
-**not** returned on booking / preview / receipt / webhook partner payloads:
+These are computed for Maat host accounting, but are **not** returned on
+booking / preview / receipt / webhook partner payloads:
 
 | Internal field | Meaning |
 |----------------|---------|

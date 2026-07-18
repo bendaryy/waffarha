@@ -123,9 +123,9 @@ How `financial` is derived (same pipeline as `/check`):
   persists the server total. Commission is **not** added to `total`.
 
 > Maat's commission breakdown (`commission_per_day`, `total_commission`,
-> `net_amount`) is computed on the server and persisted to `tbl_book` so
-> host payouts and BI reports work, but it is **not** exposed on the
-> partner-facing API or webhooks — that's internal accounting.
+> `net_amount`) is computed on the server for host payouts, but it is
+> **not** exposed on the partner-facing API or webhooks — that's internal
+> accounting.
 
 The same `financial` block is mirrored on every webhook payload — see
 [webhooks](webhooks.md) and [data objects](data-objects.md#booking).
