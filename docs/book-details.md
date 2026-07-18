@@ -1,8 +1,7 @@
 # `bookings()->bookDetails()` — guest receipt (JSON)
 
-Fetch the guest-facing receipt for a booking. Mirrors Maat's
-`POST /u_book_details`: returns a `bookdetails` object (day breakdown +
-financial summary). Always in EGP. No public HTML URL.
+Fetch the guest-facing receipt for a booking: a `bookdetails` object
+(day breakdown + financial summary). Always in EGP. No public HTML URL.
 
 Separate from [`bookings()->preview()`](booking-preview.md), which returns
 a booking-shaped quote (not this receipt).

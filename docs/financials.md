@@ -20,7 +20,7 @@ Host tax is always on the **original** `subtotal` (Maat-coupon shape), even
 when `discount_in_percentage` is set. Cleaning fee, access, and host tax are
 never discounted.
 
-Commission is **not** part of `total` (same as Maat’s `/v1/u_simulate_booking`).
+Commission is **not** part of `total`.
 
 ---
 

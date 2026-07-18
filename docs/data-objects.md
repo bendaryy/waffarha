@@ -337,7 +337,7 @@ in `$currency` (always `"EGP"` today). Cross-endpoint matrix and formulas:
 | `hostTaxRate` | `?float` | `host_tax_rate` — host property tax % from `tbl_property.tax`. `null` on older responses |
 | `taxFromHost` | `?float` | `tax_from_host` — `subtotal × host_tax_rate / 100` (on original subtotal). `null` on older responses |
 | `commissionPercentage` | `?float` | `commission_percentage` — Maat's platform commission rate from `tbl_setting.commission` (e.g. `1.00` = 1%). `null` on older responses |
-| `commissionAmount` | `?float` | `commission_amount` — `subtotal × commission_percentage / 100`, rounded to 2 decimals. **Not** added to `total` — reported separately so partners can reconcile against Maat's host payouts (same convention as `v1/u_simulate_booking`) |
+| `commissionAmount` | `?float` | `commission_amount` — `subtotal × commission_percentage / 100`, rounded to 2 decimals. **Not** added to `total` — reported separately |
 | `total` | `?float` | `total` — `subtotal_after_discount + cleaning_fee + access + tax_from_host`. Falls back to that sum for older API responses that did not send `total` |
 
 ### AvailabilityProperty
@@ -484,7 +484,7 @@ receipt: **[financials.md](financials.md)**.
 | `access` | `float` | `access` | `tbl_property.access` in EGP — one-time. |
 | `hostTaxRate` | `float` | `host_tax_rate` | Host property tax % (`tbl_property.tax`). |
 | `taxFromHost` | `float` | `tax_from_host` | Host tax amount on original subtotal. |
-| `total` | `float` | `total` | `subtotal_after_discount + cleaning_fee + access + tax_from_host` — what the partner is billed. Commission is **not** added (same as `/v1/u_simulate_booking`). |
+| `total` | `float` | `total` | `subtotal_after_discount + cleaning_fee + access + tax_from_host` — what the partner is billed. Commission is **not** added. |
 
 > Maat's commission breakdown (commission per day, total commission, net
 > amount) is computed and persisted to `tbl_book` for host payouts but is

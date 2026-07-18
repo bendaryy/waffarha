@@ -26,7 +26,7 @@ window during which somebody else might book the same dates).
 | `check_in` | string (`Y-m-d`) | yes | Must be today or later. |
 | `check_out` | string (`Y-m-d`) | yes | Must be strictly after `check_in`. |
 | `guests_count` | int | no | Optional sanity hint — not used for availability filtering today, but accepted for forward-compat. |
-| `discount_in_percentage` | number | no | Optional Maat-coupon-style discount, `0`–`100`. When set the response's `financial` block also exposes `discount_percentage`, `discount_amount`, `subtotal_after_discount`, and `total` is reduced accordingly (cleaning fee is never discounted). Commission stays calculated on the **original `subtotal`** — Maat (not the host) eats the discount, exactly like a Maat coupon in `POST /v1/u_book`. The same percentage must be re-sent to [`bookings()->create()`](create-booking.md) for the booking row to actually carry the discount. |
+| `discount_in_percentage` | number | no | Optional percentage discount, `0`–`100`. When set the response's `financial` block also exposes `discount_percentage`, `discount_amount`, `subtotal_after_discount`, and `total` is reduced accordingly (cleaning fee is never discounted). Commission stays on the **original `subtotal`**. Re-send the same percentage to [`bookings()->create()`](create-booking.md). |
 
 ## Response — `200 OK`
 
@@ -169,8 +169,7 @@ All money fields live under the `financial` block:
   `tbl_setting.commission`, e.g. `1.00` means 1%).
 - `commission_amount` is the calculated commission applied to `subtotal`
   (cleaning / access / tax_from_host are commission-free). Commission is
-  reported separately and **not** added to `total` — same convention as
-  `POST /v1/u_simulate_booking` on the regular Maat surface.
+  reported separately and **not** added to `total`.
 
 ## Response — `409 Conflict` (unavailable)
 
@@ -232,4 +231,4 @@ try {
 > `total = subtotal + cleaning_fee + access + tax_from_host` is the figure
 > to send as `total_amount` in [`bookings()->create()`](create-booking.md).
 > `commission_*` mirrors `tbl_setting.commission` (applied to `subtotal`)
-> and is reported separately — same convention as `v1/u_simulate_booking`.
+> and is reported separately — it is **not** part of guest `total`.

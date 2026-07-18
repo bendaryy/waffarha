@@ -28,7 +28,7 @@ Waffarha::bookings()->create(array $payload): Booking
 | `total_amount` | number | yes | Booking total in EGP — must equal the `financial.total` you got back from [`units()->checkAvailability()`](check-availability.md) (re-call `/check` with the same `discount_in_percentage` if you used one). Maat **recomputes** every financial field server-side using the same pipeline as `/check`; if your number differs from the server total by more than 1 EGP the request still succeeds but Maat persists the server number, logs the mismatch, and the response mirrors that. |
 | `currency` | string | no | 3-letter ISO currency code (informational only; everything is stored in EGP). |
 | `notes` | string | no | Free-text notes. |
-| `discount_in_percentage` | number | no | Optional Maat-coupon-style discount, `0`–`100`. Applied to the nightly subtotal **before** commission and `total` (cleaning fee is never discounted) — exactly like a Maat coupon on `POST /v1/u_book`. When present the booking row gets `discount_code_source = 'Waffarha'`, `discount_code_type = 'coupon'`, `discount_value_type = 'percentage'`, `discount_value = <pct>`, `cou_amt = <discount_amount>`, and `discount_code` stays `null` (no coupon string). Re-send the *same* percentage you sent to `/check` so the server total matches. |
+| `discount_in_percentage` | number | no | Optional percentage discount, `0`–`100`. Applied to the nightly subtotal **before** `total` (cleaning fee / access / host tax are never discounted). Re-send the *same* percentage you sent to `/check` so the server total matches. |
 | `guest.name` | string | yes | Guest name. |
 | `guest.email` / `phone` / `nationality` / `passport_number` / `date_of_birth` | string | no | Guest details. |
 
@@ -56,12 +56,12 @@ $booking = Waffarha::bookings()->create([
     ],
 ]);
 
-echo $booking->uuid, ' ', $booking->status; // status is always "Confirmed" on create
+echo $booking->uuid, ' ', $booking->status; // e.g. "Booked"
 ```
 
-Created bookings start as **`Confirmed`**. Full status list:
-[booking-statuses.md](booking-statuses.md). Money fields:
-[financials.md](financials.md).
+On create, `status` is typically **`Booked`** and may become **`Confirmed`**
+shortly after. Full list: [booking-statuses.md](booking-statuses.md).
+Money fields: [financials.md](financials.md).
 
 ## Response
 
@@ -76,7 +76,7 @@ A 201 returns the persisted booking with a partner-safe `financial` block:
     "id": "9b3a1c6e-4d2f-4d1e-8a5b-2c8d8e9f0a1b",
     "provider": "Waffarha",
     "provider_booking_id": "WAF-123456",
-    "status": "Confirmed",
+    "status": "Booked",
     "check_in": "2026-08-12",
     "check_out": "2026-08-15",
     "total_days": 3,
@@ -111,25 +111,16 @@ How `financial` is derived (same pipeline as `/check`):
   only present when `discount_in_percentage` was sent.
   `discount_amount = subtotal × discount_percentage / 100`,
   `subtotal_after_discount = subtotal − discount_amount`. Cleaning fee is
-  never discounted. **Important — Maat-coupon shape:** the discount only
-  reduces what the guest pays (`total`). Behind the scenes Maat's
-  commission and the host's payout (`net_amount`) are still calculated
-  against the **original `subtotal`** — the host is paid as if no discount
-  existed, and Maat (not the host) absorbs the discount. Same convention
-  as the Maat-coupon branch in `POST /v1/u_book`.
-- `cleaning_fee` — `tbl_property.cleaning_fee` converted to EGP, charged
-  once per booking.
-- `access` — `tbl_property.access` converted to EGP, charged once per
-  booking (discount-free).
-- `host_tax_rate` / `tax_from_host` — host property tax
-  (`tbl_property.tax` % on the **original** `subtotal`, Maat-coupon shape).
-  Added to guest `total`; commission-free.
+  never discounted. The discount only reduces what the guest pays
+  (`total`); commission / host payout stay on the **original `subtotal`**.
+- `cleaning_fee` — one-time cleaning fee in EGP.
+- `access` — one-time access fee in EGP (discount-free).
+- `host_tax_rate` / `tax_from_host` — host property tax (% on the
+  **original** `subtotal`). Added to guest `total`; commission-free.
 - `total` — `subtotal_after_discount + cleaning_fee + access +
   tax_from_host` (or `subtotal + …` when no discount). This is the figure
-  to send as `total_amount` on the next create call; if it differs from
-  your number Maat persists the server total and logs a mismatch warning.
-  Same convention as `POST /v1/u_simulate_booking` — commission is **not**
-  added.
+  to send as `total_amount` on create; if it differs from your number Maat
+  persists the server total. Commission is **not** added to `total`.
 
 > Maat's commission breakdown (`commission_per_day`, `total_commission`,
 > `net_amount`) is computed on the server and persisted to `tbl_book` so
