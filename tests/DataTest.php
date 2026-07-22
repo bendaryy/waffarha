@@ -12,6 +12,9 @@ use Maat\Waffarha\Data\BookingFinancial;
 use Maat\Waffarha\Data\CityFolder;
 use Maat\Waffarha\Data\CityFolderCollection;
 use Maat\Waffarha\Data\CityFolderUnits;
+use Maat\Waffarha\Data\Facility;
+use Maat\Waffarha\Data\FacilityCollection;
+use Maat\Waffarha\Data\FacilityGroup;
 use Maat\Waffarha\Data\OrphanGap;
 use Maat\Waffarha\Data\Payout;
 use Maat\Waffarha\Data\PayoutCollection;
@@ -555,5 +558,41 @@ class DataTest extends BaseTestCase
         $this->assertCount(1, $result);
         $this->assertSame('u-1', $result->items[0]->uuid);
         $this->assertSame(1, $result->meta?->total);
+    }
+
+    public function test_facility_collection_maps_grouped_amenities(): void
+    {
+        $collection = FacilityCollection::fromArray([
+            'facilities' => [
+                [
+                    'category_id' => 1,
+                    'category_name' => 'Essentials',
+                    'category_name_en' => 'Essentials',
+                    'category_name_ar' => null,
+                    'category_icon' => 'icon.svg',
+                    'facilities' => [
+                        [
+                            'id' => 3,
+                            'title' => 'Wifi',
+                            'title_en' => 'Wifi',
+                            'title_ar' => null,
+                            'image' => 'wifi.png',
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertCount(1, $collection);
+        $group = $collection->items[0];
+        $this->assertInstanceOf(FacilityGroup::class, $group);
+        $this->assertSame(1, $group->categoryId);
+        $this->assertSame('Essentials', $group->categoryName);
+        $this->assertCount(1, $group);
+        $facility = $group->facilities[0];
+        $this->assertInstanceOf(Facility::class, $facility);
+        $this->assertSame(3, $facility->id);
+        $this->assertSame('Wifi', $facility->title);
+        $this->assertSame('wifi.png', $facility->image);
     }
 }

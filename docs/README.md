@@ -16,6 +16,7 @@ start, see the [project README](../README.md).
 - [`units()->calendar()`](unit-calendar.md) — per-day pricing + availability (returns `UnitCalendar`).
 - [`units()->checkAvailability()`](check-availability.md) — confirm a date range + price breakdown (returns `AvailabilityCheck`).
 - [`cityFolders()->list()` / `units()`](city-folders.md) — browse city folders + search/filter Waffarha units inside a folder.
+- [`facilities()->list()`](facilities.md) — amenity catalogue (ids for the `facilities[]` filter).
 - [`bookings()->list()`](list-bookings.md) — list bookings (returns `BookingCollection`).
 - [`bookings()->get()`](get-booking.md) — booking details (returns `Booking`).
 - [`bookings()->preview()`](booking-preview.md) — booking-shaped quote before create (returns `Booking`).

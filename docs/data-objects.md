@@ -83,6 +83,41 @@ Returned by `cityFolders()->units($id)`. Iterable over the page of units.
 
 Methods: `count()`, `getIterator()`, `toArray()`.
 
+## Returned by `facilities()->list()`
+
+### FacilityCollection
+
+Iterable + countable. Each item is a [`FacilityGroup`](#facilitygroup).
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `items` | `list<FacilityGroup>` | Categories that have ≥ 1 active facility |
+
+### FacilityGroup
+
+| Property | Type | Source key |
+|----------|------|-----------|
+| `categoryId` | `?int` | `category_id` |
+| `categoryName` | `?string` | `category_name` (localized via `lang`) |
+| `categoryNameEn` | `?string` | `category_name_en` |
+| `categoryNameAr` | `?string` | `category_name_ar` |
+| `categoryIcon` | `?string` | `category_icon` |
+| `facilities` | `list<Facility>` | Nested amenity rows |
+| `attributes` | `array` | full group |
+
+Iterable over nested facilities. Methods: `count()`, `getIterator()`, `toArray()`.
+
+### Facility
+
+| Property | Type | Source key |
+|----------|------|-----------|
+| `id` | `?int` | `id` — pass to `facilities[]` on city-folder unit search |
+| `title` | `?string` | `title` (localized) |
+| `titleEn` | `?string` | `title_en` |
+| `titleAr` | `?string` | `title_ar` |
+| `image` | `?string` | `image` |
+| `attributes` | `array` | full row |
+
 ### PaginationMeta
 
 | Property | Type | Source key |

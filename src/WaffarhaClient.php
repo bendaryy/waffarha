@@ -8,6 +8,7 @@ use Maat\Waffarha\Exceptions\WaffarhaRequestException;
 use Maat\Waffarha\Http\Transport;
 use Maat\Waffarha\Resources\Bookings;
 use Maat\Waffarha\Resources\CityFolders;
+use Maat\Waffarha\Resources\Facilities;
 use Maat\Waffarha\Resources\Payouts;
 use Maat\Waffarha\Resources\Units;
 use Maat\Waffarha\Resources\WhatsApp;
@@ -24,6 +25,8 @@ class WaffarhaClient
     private ?Units $units = null;
 
     private ?CityFolders $cityFolders = null;
+
+    private ?Facilities $facilities = null;
 
     private ?Bookings $bookings = null;
 
@@ -51,6 +54,14 @@ class WaffarhaClient
     public function cityFolders(): CityFolders
     {
         return $this->cityFolders ??= new CityFolders($this->transport);
+    }
+
+    /**
+     * Facilities catalogue — amenity ids for city-folder unit search filters.
+     */
+    public function facilities(): Facilities
+    {
+        return $this->facilities ??= new Facilities($this->transport);
     }
 
     /**

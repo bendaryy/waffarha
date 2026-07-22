@@ -73,7 +73,7 @@ All filters are optional. Sent as the query string (GET). Arrays use
 | `m2_min` | int | Min square meters |
 | `m2_max` | int | Max square meters |
 | `ptype` | int[] | Property type / category ids |
-| `facilities` | int[] | Facility ids |
+| `facilities` | int[] | Facility ids — from [`facilities()->list()`](facilities.md) |
 | `latitude` | number | Map center latitude (with `longtitude`) |
 | `longtitude` | number | Map center longitude (API spelling) |
 | `radius` | number | Search radius in km around lat/lng |

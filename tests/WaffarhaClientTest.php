@@ -11,6 +11,7 @@ use Maat\Waffarha\Data\Booking;
 use Maat\Waffarha\Data\BookingCollection;
 use Maat\Waffarha\Data\CityFolderCollection;
 use Maat\Waffarha\Data\CityFolderUnits;
+use Maat\Waffarha\Data\FacilityCollection;
 use Maat\Waffarha\Data\GuestBookDetails;
 use Maat\Waffarha\Data\Payout;
 use Maat\Waffarha\Data\PayoutCollection;
@@ -23,6 +24,7 @@ use Maat\Waffarha\Exceptions\WaffarhaRequestException;
 use Maat\Waffarha\Http\Transport;
 use Maat\Waffarha\Resources\Bookings;
 use Maat\Waffarha\Resources\CityFolders;
+use Maat\Waffarha\Resources\Facilities;
 use Maat\Waffarha\Resources\Payouts;
 use Maat\Waffarha\Resources\Units;
 use Maat\Waffarha\Resources\WhatsApp;
@@ -89,6 +91,41 @@ class WaffarhaClientTest extends TestCase
         $this->assertSame(12, $result->cityFolder?->id);
         $this->assertSame('u-1', $result->items[0]->uuid);
         $this->assertSame(1, $result->meta?->total);
+    }
+
+    public function test_facilities_accessor_returns_a_memoized_resource(): void
+    {
+        $client = $this->app->make(WaffarhaClient::class);
+
+        $this->assertInstanceOf(Facilities::class, $client->facilities());
+        $this->assertSame($client->facilities(), $client->facilities(), 'facilities() should return the same instance.');
+    }
+
+    public function test_facilities_list_returns_typed_collection(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/facilities*' => Http::response([
+                'ResponseCode' => '200',
+                'Result' => 'true',
+                'facilities' => [
+                    [
+                        'category_id' => 1,
+                        'category_name' => 'Essentials',
+                        'facilities' => [
+                            ['id' => 3, 'title' => 'Wifi', 'image' => 'wifi.png'],
+                        ],
+                    ],
+                ],
+            ]),
+        ]);
+
+        $groups = $this->app->make(WaffarhaClient::class)->facilities()->list();
+
+        $this->assertInstanceOf(FacilityCollection::class, $groups);
+        $this->assertCount(1, $groups);
+        $this->assertSame(1, $groups->items[0]->categoryId);
+        $this->assertSame(3, $groups->items[0]->facilities[0]->id);
     }
 
     public function test_bookings_accessor_returns_a_memoized_resource(): void
