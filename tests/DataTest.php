@@ -9,6 +9,9 @@ use Maat\Waffarha\Data\AvailabilityFinancial;
 use Maat\Waffarha\Data\Booking;
 use Maat\Waffarha\Data\BookingCollection;
 use Maat\Waffarha\Data\BookingFinancial;
+use Maat\Waffarha\Data\CityFolder;
+use Maat\Waffarha\Data\CityFolderCollection;
+use Maat\Waffarha\Data\CityFolderUnits;
 use Maat\Waffarha\Data\OrphanGap;
 use Maat\Waffarha\Data\Payout;
 use Maat\Waffarha\Data\PayoutCollection;
@@ -511,5 +514,46 @@ class DataTest extends BaseTestCase
         $this->assertSame('https://wa.me/201044660885', $contact->url);
         $this->assertSame('https://api.whatsapp.com/send?phone=201044660885', $contact->deepLink);
         $this->assertSame('01044660885', $contact->get('phone_number'));
+    }
+
+    public function test_city_folder_collection_maps_rows(): void
+    {
+        $folders = CityFolderCollection::fromArray([
+            'city_folders' => [
+                [
+                    'id' => 12,
+                    'name' => 'New Cairo',
+                    'name_en' => 'New Cairo',
+                    'name_ar' => 'القاهرة الجديدة',
+                    'unit_count' => 8,
+                    'cover_images' => ['a.jpg', 'b.jpg'],
+                ],
+            ],
+        ]);
+
+        $this->assertCount(1, $folders);
+        $folder = $folders->items[0];
+        $this->assertInstanceOf(CityFolder::class, $folder);
+        $this->assertSame(12, $folder->id);
+        $this->assertSame('New Cairo', $folder->name);
+        $this->assertSame(8, $folder->unitCount);
+        $this->assertSame(['a.jpg', 'b.jpg'], $folder->coverImages);
+    }
+
+    public function test_city_folder_units_maps_folder_and_units(): void
+    {
+        $result = CityFolderUnits::fromArray([
+            'city_folder' => ['id' => 12, 'name' => 'New Cairo', 'name_en' => 'New Cairo', 'name_ar' => null],
+            'units' => [
+                ['uuid' => 'u-1', 'title' => 'Unit', 'price' => '1000', 'price_currency' => 'EGP'],
+            ],
+            'pagination' => ['current_page' => 1, 'total' => 1],
+        ]);
+
+        $this->assertSame(12, $result->cityFolder?->id);
+        $this->assertSame('New Cairo', $result->cityFolder?->name);
+        $this->assertCount(1, $result);
+        $this->assertSame('u-1', $result->items[0]->uuid);
+        $this->assertSame(1, $result->meta?->total);
     }
 }

@@ -9,6 +9,8 @@ use Maat\Waffarha\Auth\TokenManager;
 use Maat\Waffarha\Data\AvailabilityCheck;
 use Maat\Waffarha\Data\Booking;
 use Maat\Waffarha\Data\BookingCollection;
+use Maat\Waffarha\Data\CityFolderCollection;
+use Maat\Waffarha\Data\CityFolderUnits;
 use Maat\Waffarha\Data\GuestBookDetails;
 use Maat\Waffarha\Data\Payout;
 use Maat\Waffarha\Data\PayoutCollection;
@@ -20,6 +22,7 @@ use Maat\Waffarha\Exceptions\WaffarhaConfigurationException;
 use Maat\Waffarha\Exceptions\WaffarhaRequestException;
 use Maat\Waffarha\Http\Transport;
 use Maat\Waffarha\Resources\Bookings;
+use Maat\Waffarha\Resources\CityFolders;
 use Maat\Waffarha\Resources\Payouts;
 use Maat\Waffarha\Resources\Units;
 use Maat\Waffarha\Resources\WhatsApp;
@@ -33,6 +36,59 @@ class WaffarhaClientTest extends TestCase
 
         $this->assertInstanceOf(Units::class, $client->units());
         $this->assertSame($client->units(), $client->units(), 'units() should return the same instance.');
+    }
+
+    public function test_city_folders_accessor_returns_a_memoized_resource(): void
+    {
+        $client = $this->app->make(WaffarhaClient::class);
+
+        $this->assertInstanceOf(CityFolders::class, $client->cityFolders());
+        $this->assertSame($client->cityFolders(), $client->cityFolders(), 'cityFolders() should return the same instance.');
+    }
+
+    public function test_city_folders_list_returns_typed_collection(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/city-folders*' => Http::response([
+                'ResponseCode' => '200',
+                'Result' => 'true',
+                'city_folders' => [
+                    ['id' => 12, 'name' => 'New Cairo', 'unit_count' => 3, 'cover_images' => []],
+                ],
+            ]),
+        ]);
+
+        $folders = $this->app->make(WaffarhaClient::class)->cityFolders()->list();
+
+        $this->assertInstanceOf(CityFolderCollection::class, $folders);
+        $this->assertCount(1, $folders);
+        $this->assertSame(12, $folders->items[0]->id);
+    }
+
+    public function test_city_folder_units_returns_typed_payload(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'maat.test/waffarha/city-folders/12/units*' => Http::response([
+                'ResponseCode' => '200',
+                'Result' => 'true',
+                'city_folder' => ['id' => 12, 'name' => 'New Cairo'],
+                'units' => [
+                    ['uuid' => 'u-1', 'title' => 'Unit', 'price' => '1000', 'price_currency' => 'EGP'],
+                ],
+                'pagination' => ['current_page' => 1, 'total' => 1],
+            ]),
+        ]);
+
+        $result = $this->app->make(WaffarhaClient::class)->cityFolders()->units(12, [
+            'keyword' => 'cairo',
+        ]);
+
+        $this->assertInstanceOf(CityFolderUnits::class, $result);
+        $this->assertSame(12, $result->cityFolder?->id);
+        $this->assertSame('u-1', $result->items[0]->uuid);
+        $this->assertSame(1, $result->meta?->total);
     }
 
     public function test_bookings_accessor_returns_a_memoized_resource(): void

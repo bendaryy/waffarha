@@ -7,6 +7,7 @@ namespace Maat\Waffarha;
 use Maat\Waffarha\Exceptions\WaffarhaRequestException;
 use Maat\Waffarha\Http\Transport;
 use Maat\Waffarha\Resources\Bookings;
+use Maat\Waffarha\Resources\CityFolders;
 use Maat\Waffarha\Resources\Payouts;
 use Maat\Waffarha\Resources\Units;
 use Maat\Waffarha\Resources\WhatsApp;
@@ -21,6 +22,8 @@ use Maat\Waffarha\Resources\WhatsApp;
 class WaffarhaClient
 {
     private ?Units $units = null;
+
+    private ?CityFolders $cityFolders = null;
 
     private ?Bookings $bookings = null;
 
@@ -39,6 +42,15 @@ class WaffarhaClient
     public function units(): Units
     {
         return $this->units ??= new Units($this->transport);
+    }
+
+    /**
+     * City folders browse: list folders for a country, then list/filter units
+     * inside a folder (Waffarha-exposed units only).
+     */
+    public function cityFolders(): CityFolders
+    {
+        return $this->cityFolders ??= new CityFolders($this->transport);
     }
 
     /**

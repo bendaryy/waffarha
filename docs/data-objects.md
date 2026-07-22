@@ -49,6 +49,40 @@ Methods: `get(string $key, mixed $default = null)`, `toArray()`. Non-promoted
 fields (`base_price`, `cleaning_fee_currency`, `country_id`, …) are read via
 `get()`.
 
+## Returned by `cityFolders()->list()` / `units()`
+
+### CityFolderCollection
+
+Iterable + countable. Returned by `cityFolders()->list()`.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `items` | `list<CityFolder>` | Folders with ≥ 1 Waffarha-exposed unit |
+
+### CityFolder
+
+| Property | Type | Source key |
+|----------|------|-----------|
+| `id` | `?int` | `id` |
+| `name` | `?string` | `name` (localized via `lang` header) |
+| `nameEn` | `?string` | `name_en` |
+| `nameAr` | `?string` | `name_ar` |
+| `unitCount` | `?int` | `unit_count` — Waffarha-exposed units only |
+| `coverImages` | `list<string>` | `cover_images` — from those units only |
+| `attributes` | `array` | full row |
+
+### CityFolderUnits
+
+Returned by `cityFolders()->units($id)`. Iterable over the page of units.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `cityFolder` | `?CityFolder` | Folder summary (no `unit_count` / covers on this payload) |
+| `items` | `list<Unit>` | Same [`Unit`](#unit) shape as `units()->list()` |
+| `meta` | `?PaginationMeta` | `pagination` block |
+
+Methods: `count()`, `getIterator()`, `toArray()`.
+
 ### PaginationMeta
 
 | Property | Type | Source key |
