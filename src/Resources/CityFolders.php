@@ -9,7 +9,7 @@ use Maat\Waffarha\Data\CityFolderUnits;
 use Maat\Waffarha\Exceptions\WaffarhaRequestException;
 
 /**
- * City folders browse API — list folders for a country, then list/filter the
+ * City folders browse API — list folders, then list/search the
  * Waffarha-exposed units inside one folder.
  */
 final class CityFolders extends Resource
@@ -34,10 +34,10 @@ final class CityFolders extends Resource
      * Paginated units inside a city folder (Waffarha-exposed units only).
      *
      * - **HTTP:** `GET city-folders/{id}/units`
-     * - **Query:** optional search filters (`keyword`, dates, beds, `sort_by`,
-     *   …) and `page` / `per_page`.
+     * - **Query:** optional search filters — see `docs/city-folders.md`
+     *   (`keyword`, dates, beds, price, map, `sort_by`, `page` / `per_page`, …).
      *
-     * @param  array<string, scalar|null>  $query
+     * @param  array<string, mixed>  $query
      *
      * @throws WaffarhaRequestException
      */

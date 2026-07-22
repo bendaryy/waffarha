@@ -73,7 +73,7 @@ You can also resolve the client via dependency injection
 | [`units()->get()`](docs/get-unit.md) | Unit details — response shape, full field reference |
 | [`units()->calendar()`](docs/unit-calendar.md) | Per-day pricing + availability calendar (180-day window, hard cap) |
 | [`units()->checkAvailability()`](docs/check-availability.md) | Confirm a date range + price breakdown before creating a booking |
-| [`cityFolders()->list()` / `units()`](docs/city-folders.md) | Browse city folders + filtered Waffarha units inside a folder (always EGP) |
+| [`cityFolders()->list()` / `units()`](docs/city-folders.md) | Browse city folders + search/filter Waffarha units inside a folder (always EGP) |
 | [`bookings()->list()`](docs/list-bookings.md) | List bookings — filters, response, return type |
 | [`bookings()->get()`](docs/get-booking.md) | Booking details by UUID |
 | [`bookings()->preview()`](docs/booking-preview.md) | Booking-shaped quote before create (`POST /bookings/preview`) — always EGP |
