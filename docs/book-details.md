@@ -41,20 +41,26 @@ echo $receipt->get('guest_name');
     "total_day": 3,
     "guest_name": "Ahmed Mohamed",
     "subtotal": 4500.00,
+    "long_stay_discount": 0,
+    "long_stay_applied": false,
     "cleaning_fee": 250.00,
     "access": 100.00,
+    "service_fee": 50.00,
+    "tax": 7.00,
     "host_tax_rate": 14.00,
     "tax_from_host": 630.00,
-    "total": 5480.00,
+    "total": 5537.00,
     "day_breakdown": [ /* … */ ],
     "financial_summary": {
       "currency": "EGP",
       "subtotal": 4500.00,
       "cleaning_fee": 250.00,
       "access": 100.00,
+      "service_fee_amount": 50.00,
+      "tax_amount": 7.00,
       "host_tax_rate": 14.00,
       "tax_from_host": 630.00,
-      "total_amount": 5480.00
+      "total_amount": 5537.00
     }
   },
   "ResponseCode": "200",

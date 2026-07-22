@@ -33,7 +33,7 @@ use Traversable;
  *
  * @implements IteratorAggregate<int, AvailabilityNight>
  *
- * @phpstan-type AvailabilityPayload array{available?: bool|int|string|null, property_uuid?: string|null, check_in?: string|null, check_out?: string|null, nights?: int|string|null, booking_dates?: array<string, mixed>, currency?: string|null, subtotal?: int|float|string|null, cleaning_fee?: int|float|string|null, total?: int|float|string|null, financial?: array<string, mixed>, property?: array<string, mixed>, special_rates_applied?: list<array<string, mixed>>, breakdown?: list<array<string, mixed>>}
+ * @phpstan-type AvailabilityPayload array{available?: bool|int|string|null, property_uuid?: string|null, check_in?: string|null, check_out?: string|null, nights?: int|string|null, booking_dates?: array<string, mixed>, currency?: string|null, subtotal?: int|float|string|null, cleaning_fee?: int|float|string|null, total?: int|float|string|null, financial?: array<string, mixed>, property?: array<string, mixed>, special_rates_applied?: list<array<string, mixed>>, breakdown?: list<array<string, mixed>>, is_xuru_unit?: bool|int|string|null, xuru_status?: bool|int|string|null, xuru_price_applied?: bool|int|string|null, effective_minimum_stay?: int|string|null}
  */
 final readonly class AvailabilityCheck implements Countable, IteratorAggregate
 {
@@ -47,9 +47,19 @@ final readonly class AvailabilityCheck implements Countable, IteratorAggregate
 
     public ?float $subtotal;
 
+    public ?float $longStayDiscount;
+
+    public ?bool $longStayApplied;
+
     public ?float $cleaningFee;
 
     public ?float $access;
+
+    public ?float $serviceFee;
+
+    public ?float $taxRate;
+
+    public ?float $tax;
 
     public ?float $hostTaxRate;
 
@@ -79,14 +89,23 @@ final readonly class AvailabilityCheck implements Countable, IteratorAggregate
         public ?AvailabilityProperty $property,
         public array $specialRatesApplied,
         public array $breakdown,
+        public ?bool $isXuruUnit = null,
+        public ?bool $xuruStatus = null,
+        public ?bool $xuruPriceApplied = null,
+        public ?int $effectiveMinimumStay = null,
     ) {
         $this->checkIn = $bookingDates->checkIn;
         $this->checkOut = $bookingDates->checkOut;
         $this->nights = $bookingDates->totalDays;
         $this->currency = $financial->currency;
         $this->subtotal = $financial->subtotal;
+        $this->longStayDiscount = $financial->longStayDiscount;
+        $this->longStayApplied = $financial->longStayApplied;
         $this->cleaningFee = $financial->cleaningFee;
         $this->access = $financial->access;
+        $this->serviceFee = $financial->serviceFee;
+        $this->taxRate = $financial->taxRate;
+        $this->tax = $financial->tax;
         $this->hostTaxRate = $financial->hostTaxRate;
         $this->taxFromHost = $financial->taxFromHost;
         $this->total = $financial->total;
@@ -147,6 +166,8 @@ final readonly class AvailabilityCheck implements Countable, IteratorAggregate
             }
         }
 
+        $effectiveMinimumStay = $data['effective_minimum_stay'] ?? null;
+
         return new self(
             available: isset($data['available']) ? (bool) $data['available'] : true,
             propertyUuid: isset($data['property_uuid']) && is_scalar($data['property_uuid']) ? (string) $data['property_uuid'] : null,
@@ -155,6 +176,12 @@ final readonly class AvailabilityCheck implements Countable, IteratorAggregate
             property: $property,
             specialRatesApplied: $specialRatesApplied,
             breakdown: $breakdown,
+            isXuruUnit: array_key_exists('is_xuru_unit', $data) ? (bool) $data['is_xuru_unit'] : null,
+            xuruStatus: array_key_exists('xuru_status', $data) && $data['xuru_status'] !== null
+                ? (bool) $data['xuru_status']
+                : null,
+            xuruPriceApplied: array_key_exists('xuru_price_applied', $data) ? (bool) $data['xuru_price_applied'] : null,
+            effectiveMinimumStay: is_numeric($effectiveMinimumStay) ? (int) $effectiveMinimumStay : null,
         );
     }
 

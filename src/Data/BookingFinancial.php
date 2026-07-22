@@ -9,18 +9,7 @@ namespace Maat\Waffarha\Data;
  * endpoint (`POST /waffarha/bookings`, `GET /waffarha/bookings/{uuid}`, the
  * collection list, plus the outbound `reservation.*` webhooks).
  *
- * Only fields the partner needs for reconciliation (subtotal, optional
- * discount, cleaning fee, access, host tax, total) are exposed — commission
- * / net-amount stay internal to Maat. The `total` here is the
- * server-computed amount (Maat re-runs the same pipeline as
- * `units()->checkAvailability()`), so it is the authoritative number even
- * when it differs from the `total_amount` the partner sent in the create
- * request.
- *
- * Discount keys (`discountPercentage`, `discountAmount`,
- * `subtotalAfterDiscount`) are populated only when the booking was created
- * with `discount_in_percentage`. When absent they are all `null`.
- *
+ * Partner-safe money only — commission / net-amount stay internal to Maat.
  * All monetary fields are floats in EGP.
  */
 final readonly class BookingFinancial
@@ -28,11 +17,16 @@ final readonly class BookingFinancial
     public function __construct(
         public string $currency,
         public float $subtotal,
+        public ?float $longStayDiscount,
+        public ?bool $longStayApplied,
         public ?float $discountPercentage,
         public ?float $discountAmount,
         public ?float $subtotalAfterDiscount,
         public float $cleaningFee,
         public float $access,
+        public float $serviceFee,
+        public float $taxRate,
+        public float $tax,
         public float $hostTaxRate,
         public float $taxFromHost,
         public float $total,
@@ -50,16 +44,25 @@ final readonly class BookingFinancial
             ? (float) $data[$key]
             : null;
 
+        $longStayDiscount = $nullableFloat('long_stay_discount');
+
         return new self(
             currency: isset($data['currency']) && is_string($data['currency']) && $data['currency'] !== ''
                 ? $data['currency']
                 : 'EGP',
             subtotal: $float('subtotal'),
+            longStayDiscount: $longStayDiscount,
+            longStayApplied: array_key_exists('long_stay_applied', $data)
+                ? (bool) $data['long_stay_applied']
+                : ($longStayDiscount !== null && $longStayDiscount > 0 ? true : null),
             discountPercentage: $nullableFloat('discount_percentage'),
             discountAmount: $nullableFloat('discount_amount'),
             subtotalAfterDiscount: $nullableFloat('subtotal_after_discount'),
             cleaningFee: $float('cleaning_fee'),
             access: $float('access'),
+            serviceFee: $float('service_fee'),
+            taxRate: $float('tax_rate'),
+            tax: $float('tax'),
             hostTaxRate: $float('host_tax_rate'),
             taxFromHost: $float('tax_from_host'),
             total: $float('total'),

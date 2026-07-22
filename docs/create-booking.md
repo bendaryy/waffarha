@@ -28,7 +28,7 @@ Waffarha::bookings()->create(array $payload): Booking
 | `total_amount` | number | yes | Booking total in EGP — must equal the `financial.total` you got back from [`units()->checkAvailability()`](check-availability.md) (re-call `/check` with the same `discount_in_percentage` if you used one). Maat **recomputes** every financial field server-side using the same pipeline as `/check`; if your number differs from the server total by more than 1 EGP the request still succeeds but Maat persists the server number, logs the mismatch, and the response mirrors that. |
 | `currency` | string | no | 3-letter ISO currency code (informational only; everything is stored in EGP). |
 | `notes` | string | no | Free-text notes. |
-| `discount_in_percentage` | number | no | Optional percentage discount, `0`–`100`. Applied to the nightly subtotal **before** `total` (cleaning fee / access / host tax are never discounted). Re-send the *same* percentage you sent to `/check` so the server total matches. |
+| `discount_in_percentage` | number | no | Optional percentage discount, `0`–`100`. Applied to the nightly subtotal **after** any long-stay discount and **before** fees (`cleaning_fee` / `access` / host tax / service fee / tax are never discounted). Re-send the *same* percentage you sent to `/check` so the server total matches. |
 | `guest.name` | string | yes | Guest name. |
 | `guest.email` / `phone` / `nationality` / `passport_number` / `date_of_birth` | string | no | Guest details. |
 
@@ -91,9 +91,11 @@ A 201 returns the persisted booking with a partner-safe `financial` block:
       "subtotal_after_discount": 15552,
       "cleaning_fee": 1560,
       "access": 200,
+      "service_fee": 50,
+      "tax": 7,
       "host_tax_rate": 14,
       "tax_from_host": 2419.2,
-      "total": 19731.2
+      "total": 19788.2
     },
     "property": { "uuid": "...", "title": "...", "city": "..." },
     "guest": { "name": "Ahmed Mohamed", "...": "..." },
@@ -103,24 +105,13 @@ A 201 returns the persisted booking with a partner-safe `financial` block:
 }
 ```
 
-How `financial` is derived (same pipeline as `/check`):
+How `financial` is derived (same pipeline as `/check`): see
+**[financials.md](financials.md)**. In short:
 
-- `subtotal` — sum of every night's `price` from the per-day breakdown
-  (base price → SpecialRate → weekend uplift), in EGP.
-- `discount_percentage` / `discount_amount` / `subtotal_after_discount` —
-  only present when `discount_in_percentage` was sent.
-  `discount_amount = subtotal × discount_percentage / 100`,
-  `subtotal_after_discount = subtotal − discount_amount`. Cleaning fee is
-  never discounted. The discount only reduces what the guest pays
-  (`total`); commission / host payout stay on the **original `subtotal`**.
-- `cleaning_fee` — one-time cleaning fee in EGP.
-- `access` — one-time access fee in EGP (discount-free).
-- `host_tax_rate` / `tax_from_host` — host property tax (% on the
-  **original** `subtotal`). Added to guest `total`; commission-free.
-- `total` — `subtotal_after_discount + cleaning_fee + access +
-  tax_from_host` (or `subtotal + …` when no discount). This is the figure
-  to send as `total_amount` on create; if it differs from your number Maat
-  persists the server total. Commission is **not** added to `total`.
+- Long-stay (if any) then partner `%` reduce the nightly subtotal only.
+- `cleaning_fee` / `access` / `host_tax` / `service_fee` / `tax` are never
+  discounted; host tax stays on the **original** `subtotal`.
+- `total` includes all of the above; commission is **not** added.
 
 > Maat's commission breakdown (`commission_per_day`, `total_commission`,
 > `net_amount`) is computed on the server for host payouts, but it is

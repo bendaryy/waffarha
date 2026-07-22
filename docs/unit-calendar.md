@@ -50,6 +50,16 @@ calendar client-side by sending smaller `start_date` / `end_date` pairs.
     "days": 5
   },
   "same_day_booking": true,
+  "base_minimum_stay": 2,
+  "minimum_stay_overrides": [
+    {
+      "start_date": "2026-08-10",
+      "end_date": "2026-08-20",
+      "minimum_nights": 3,
+      "base_minimum_stay": 2,
+      "effective_minimum_nights": 3
+    }
+  ],
   "blocklist": ["2026-08-10", "2026-08-11"],
   "orphan_gaps": [
     {
@@ -80,7 +90,7 @@ calendar client-side by sending smaller `start_date` / `end_date` pairs.
 }
 ```
 
-### Per-day flags (mirror of v1, intent-friendly names)
+### Per-day flags
 
 Each `calendar` entry carries three booleans the partner can wire straight
 into a calendar UI:
@@ -91,16 +101,13 @@ into a calendar UI:
 | `available_for_checkin` | A NEW guest can begin a stay on this day. | Either booked, or another booking is checking in here, or the host has `same_day_booking = false` and an existing booking is checking out today. |
 | `available_for_checkout` | A NEW guest can end a stay on this day. | Either booked, or another booking is checking out here. |
 
-> These are the **opposite** of v1's `is_check_in` / `is_check_out` flags.
-> v1 said "an existing booking starts/ends here"; the Waffarha surface flips
-> the perspective so the boolean answers "can a new booking start/end here?"
-> — which is what calendar UIs actually want.
-
 ### Top-level fields
 
 | Field | Type | Meaning |
 |-------|------|---------|
 | `same_day_booking` | `bool` | Whether the host allows a new guest to check in on the same day someone else is checking out. When `false`, `available_for_checkin` is forced to `false` on existing check-out days. |
+| `base_minimum_stay` | `int` | Property default minimum nights. |
+| `minimum_stay_overrides` | `MinimumStayOverride[]` | Date-ranged special minimums that raise the stay requirement when a trip overlaps the window. Each entry: `{start_date, end_date, minimum_nights, base_minimum_stay, effective_minimum_nights}`. |
 | `blocklist` | `string[]` | Sorted unique list of host-blocked dates (Y-m-d). Already mirrored per-day on `is_booked`, but exposed here so partners can render block bars without iterating the whole calendar. |
 | `orphan_gaps` | `OrphanGap[]` | Short bookable gaps between existing bookings/blocks that are smaller than the unit's minimum stay. Maat relaxes the minimum stay for these ranges so the calendar doesn't carry tiny unfillable holes. Each entry carries `{start_date, end_date, gap_nights, base_minimum_stay, dynamic_minimum_nights}`. |
 

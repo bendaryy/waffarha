@@ -13,7 +13,7 @@ namespace Maat\Waffarha\Data;
  * The primary identifier is `$uuid` — Maat's internal numeric `id` is never
  * exposed on the Waffarha surface.
  *
- * @phpstan-type AvailabilityPropertyPayload array{uuid?: string|null, title?: string|null, image?: string|null, address?: string|null, city?: string|null, beds?: int|string|null, bathroom?: int|string|null}
+ * @phpstan-type AvailabilityPropertyPayload array{uuid?: string|null, title?: string|null, image?: string|null, address?: string|null, city?: string|null, beds?: int|string|null, bathroom?: int|string|null, minimum_days?: int|string|null}
  */
 final readonly class AvailabilityProperty
 {
@@ -25,6 +25,7 @@ final readonly class AvailabilityProperty
         public ?string $city,
         public ?int $beds,
         public ?int $bathroom,
+        public ?int $minimumDays = null,
     ) {}
 
     /**
@@ -34,6 +35,7 @@ final readonly class AvailabilityProperty
     {
         $beds = $data['beds'] ?? null;
         $bathroom = $data['bathroom'] ?? null;
+        $minimumDays = $data['minimum_days'] ?? null;
 
         return new self(
             uuid: isset($data['uuid']) && is_scalar($data['uuid']) ? (string) $data['uuid'] : null,
@@ -43,6 +45,7 @@ final readonly class AvailabilityProperty
             city: isset($data['city']) && is_scalar($data['city']) ? (string) $data['city'] : null,
             beds: is_numeric($beds) ? (int) $beds : null,
             bathroom: is_numeric($bathroom) ? (int) $bathroom : null,
+            minimumDays: is_numeric($minimumDays) ? (int) $minimumDays : null,
         );
     }
 }

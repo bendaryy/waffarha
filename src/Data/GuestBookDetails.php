@@ -31,8 +31,12 @@ final readonly class GuestBookDetails
         public ?string $checkOut,
         public ?int $totalDay,
         public ?float $subtotal,
+        public ?float $longStayDiscount,
+        public ?bool $longStayApplied,
         public ?float $cleaningFee,
         public ?float $access,
+        public ?float $serviceFee,
+        public ?float $tax,
         public ?float $hostTaxRate,
         public ?float $taxFromHost,
         public ?float $total,
@@ -71,6 +75,8 @@ final readonly class GuestBookDetails
             ? $details['financial_summary']
             : [];
 
+        $longStayDiscount = $float('long_stay_discount');
+
         return new self(
             currency: $str('currency') ?? 'EGP',
             uuid: $str('uuid'),
@@ -79,8 +85,14 @@ final readonly class GuestBookDetails
             checkOut: $str('check_out'),
             totalDay: $int('total_day'),
             subtotal: $float('subtotal'),
+            longStayDiscount: $longStayDiscount,
+            longStayApplied: array_key_exists('long_stay_applied', $details)
+                ? (bool) $details['long_stay_applied']
+                : ($longStayDiscount !== null && $longStayDiscount > 0 ? true : null),
             cleaningFee: $float('cleaning_fee'),
             access: $float('access'),
+            serviceFee: $float('service_fee'),
+            tax: $float('tax'),
             hostTaxRate: $float('host_tax_rate') ?? $float('tax_rate_from_host'),
             taxFromHost: $float('tax_from_host'),
             total: $float('total'),

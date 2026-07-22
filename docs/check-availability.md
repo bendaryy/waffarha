@@ -37,6 +37,10 @@ window during which somebody else might book the same dates).
   "ResponseMsg": "That Date Range Available!",
   "available": true,
   "property_uuid": "b6d0b8d2-9c5e-4f1a-9c2a-7a4b8e3f1a0d",
+  "is_xuru_unit": false,
+  "xuru_status": null,
+  "xuru_price_applied": false,
+  "effective_minimum_stay": 1,
   "booking_dates": {
     "check_in": "2026-08-12",
     "check_out": "2026-08-15",
@@ -51,21 +55,28 @@ window during which somebody else might book the same dates).
     "address": "2FXH+75M, New Cairo 1, Cairo Governorate",
     "city": "New Cairo",
     "beds": 1,
-    "bathroom": 2
+    "bathroom": 2,
+    "minimum_days": 1
   },
   "financial": {
     "currency": "EGP",
+    "base_price": 1500.00,
     "subtotal": 4500.00,
+    "long_stay_discount": 0,
+    "long_stay_applied": false,
     "discount_percentage": 10,
     "discount_amount": 450.00,
     "subtotal_after_discount": 4050.00,
     "cleaning_fee": 250.00,
     "access": 100.00,
+    "service_fee": 50.00,
+    "tax_rate": 14.00,
+    "tax": 7.00,
     "host_tax_rate": 14.00,
     "tax_from_host": 630.00,
     "commission_percentage": 1.00,
     "commission_amount": 45.00,
-    "total": 5030.00
+    "total": 5087.00
   },
   "special_rates_applied": [
     {
@@ -136,10 +147,9 @@ equivalents are intentionally not exposed.
 
 Each `breakdown` row describes a single night and follows the same
 `base_price → price_after_special_rate → + weekend_amount = price` pipeline
-as Maat's internal booking flow. All amounts are in EGP (the Waffarha
-surface does not expose the dollar equivalents the legacy receipt API
-emits). Per-night commission is **not** included — commission is only
-surfaced at the trip level under `financial.commission_amount`.
+as Maat's booking pricing pipeline. All amounts are in EGP. Per-night
+commission is **not** included — commission is only surfaced at the trip
+level under `financial.commission_amount`.
 
 The `booking_dates` block echoes back the partner-supplied dates in
 canonical `Y-m-d` form and surfaces the night counts up-front so partners
@@ -152,24 +162,30 @@ confirmation card for the guest without a second round-trip through
 [`units()->show()`](unit-show.md). The primary identifier is always `uuid`
 — Maat's internal numeric `id` is never exposed.
 
-All money fields live under the `financial` block:
+All money fields live under the `financial` block. Full matrix:
+**[financials.md](financials.md)**.
 
 - `subtotal` is the sum of the per-night `price` values in `breakdown`.
-- `cleaning_fee` is a **one-time** charge per booking (not per night),
-  already converted to EGP. It is `0` when the host has not configured a
-  cleaning fee for the unit.
-- `access` is a **one-time** access fee (EGP).
+- `long_stay_discount` / `long_stay_applied` — automatic when a long-stay
+  rule matches the trip; applied **before** any partner percentage.
+- `cleaning_fee` / `access` — **one-time** fees per booking (EGP).
+- `service_fee` / `tax_rate` / `tax` — platform service fee and tax on that
+  fee.
 - `host_tax_rate` / `tax_from_host` — host property tax on the **original**
-  `subtotal`. Added to guest `total`; commission-free.
-- `total` = `subtotal + cleaning_fee + access + tax_from_host` — this is
-  the headline number the partner should display to the guest and is the
-  figure the subsequent [`bookings()->create()`](create-booking.md) call
-  expects.
-- `commission_percentage` is Maat's platform commission rate (e.g. `1.00`
-  means 1%).
-- `commission_amount` is the calculated commission applied to `subtotal`
-  (cleaning / access / tax_from_host are commission-free). Commission is
-  reported separately and **not** added to `total`.
+  `subtotal`.
+- `total` =
+  `subtotal_after_discount + cleaning_fee + access + tax_from_host + service_fee + tax`
+  — send this as `total_amount` on [`bookings()->create()`](create-booking.md).
+- `commission_percentage` / `commission_amount` — reconcile only; **not**
+  added to guest `total`.
+
+Top-level (outside `financial`):
+
+- `effective_minimum_stay` — nights required for this window (base /
+  special override / channel min, whichever is highest).
+- `is_xuru_unit` / `xuru_status` / `xuru_price_applied` — channel-manager
+  unit hints; when `xuru_price_applied` is true, nightly prices came from
+  the channel override instead of the local SpecialRate pipeline.
 
 ## Response — `409 Conflict` (unavailable)
 
@@ -189,7 +205,9 @@ Possible `reason` values:
 |-------|---------|
 | `"booking_overlap"` | An existing non-cancelled booking overlaps the window. |
 | `"blocked"` | The host has manually blocked one or more days in the window. |
-| `"linked_date_violation"` | The window conflicts with a linked-date / minimum-stay rule. Look at `violated_linked_dates` for the specific rule(s) — same shape as [`UnitCalendar::$linkedDates`](unit-calendar.md). |
+| `"minimum_stay"` | Trip is shorter than `effective_minimum_stay`. Body may include `required_nights`, `requested_nights`, `base_minimum_stay`. |
+| `"linked_date_violation"` | The window conflicts with a linked-date rule. Look at `violated_linked_dates` — same shape as [`UnitCalendar::$linkedDates`](unit-calendar.md). |
+| `"invalid_dates"` | Check-out is not after check-in. |
 
 ## Example
 
@@ -222,13 +240,10 @@ try {
 }
 ```
 
-> **Pricing parity.** The nightly `subtotal` is computed using the same
-> `base price → SpecialRate → weekend percentage` pipeline as the real
-> booking flow, in EGP — it will match the sum of the per-night prices you'd
-> read from [`calendar()`](unit-calendar.md) for the same nights.
-> `cleaning_fee` / `access` are one-time fees in EGP, `tax_from_host` is
-> computed on the original subtotal, and
-> `total = subtotal + cleaning_fee + access + tax_from_host` is the figure
-> to send as `total_amount` in [`bookings()->create()`](create-booking.md).
-> `commission_*` (applied to `subtotal`) is reported separately — it is
-> **not** part of guest `total`.
+> **Pricing parity.** Nightly `subtotal` uses the same
+> `base price → SpecialRate → weekend percentage` pipeline as create/preview
+> (or a channel price override when `xuru_price_applied` is true). Long-stay,
+> partner %, cleaning / access, host tax, service fee, and tax on the service
+> fee are included in `financial.total` — that figure is what
+> [`bookings()->create()`](create-booking.md) expects as `total_amount`.
+> `commission_*` is informational only.

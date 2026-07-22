@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Maat\Waffarha\Tests;
 
+use Maat\Waffarha\Data\AvailabilityCheck;
+use Maat\Waffarha\Data\AvailabilityFinancial;
 use Maat\Waffarha\Data\Booking;
 use Maat\Waffarha\Data\BookingCollection;
+use Maat\Waffarha\Data\BookingFinancial;
 use Maat\Waffarha\Data\OrphanGap;
 use Maat\Waffarha\Data\Payout;
 use Maat\Waffarha\Data\PayoutCollection;
@@ -246,6 +249,137 @@ class DataTest extends BaseTestCase
         $this->assertSame([], $calendar->blocklist);
         $this->assertSame([], $calendar->orphanGaps);
         $this->assertNull($calendar->sameDayBooking);
+        $this->assertNull($calendar->baseMinimumStay);
+        $this->assertSame([], $calendar->minimumStayOverrides);
+    }
+
+    public function test_unit_calendar_parses_minimum_stay_overrides(): void
+    {
+        $calendar = UnitCalendar::fromArray([
+            'property_uuid' => 'prop-9',
+            'currency' => 'EGP',
+            'base_price' => 1500,
+            'window' => ['start_date' => '2026-08-01', 'end_date' => '2026-08-05', 'days' => 5],
+            'calendar' => [['date' => '2026-08-01']],
+            'base_minimum_stay' => 2,
+            'minimum_stay_overrides' => [
+                [
+                    'start_date' => '2026-08-10',
+                    'end_date' => '2026-08-20',
+                    'minimum_nights' => 3,
+                    'base_minimum_stay' => 2,
+                    'effective_minimum_nights' => 3,
+                ],
+            ],
+        ]);
+
+        $this->assertSame(2, $calendar->baseMinimumStay);
+        $this->assertCount(1, $calendar->minimumStayOverrides);
+        $override = $calendar->minimumStayOverrides[0];
+        $this->assertSame('2026-08-10', $override->startDate);
+        $this->assertSame('2026-08-20', $override->endDate);
+        $this->assertSame(3, $override->minimumNights);
+        $this->assertSame(2, $override->baseMinimumStay);
+        $this->assertSame(3, $override->effectiveMinimumNights);
+    }
+
+    public function test_availability_financial_parses_long_stay_and_service_fee(): void
+    {
+        $financial = AvailabilityFinancial::fromArray([
+            'currency' => 'EGP',
+            'base_price' => 1500,
+            'subtotal' => 4500,
+            'long_stay_discount' => 450,
+            'long_stay_applied' => true,
+            'discount_percentage' => 10,
+            'discount_amount' => 405,
+            'subtotal_after_discount' => 3645,
+            'cleaning_fee' => 250,
+            'access' => 100,
+            'service_fee' => 50,
+            'tax_rate' => 14,
+            'tax' => 7,
+            'host_tax_rate' => 14,
+            'tax_from_host' => 630,
+            'commission_percentage' => 1,
+            'commission_amount' => 40.5,
+            'total' => 4632,
+        ]);
+
+        $this->assertSame(1500.0, $financial->basePrice);
+        $this->assertSame(450.0, $financial->longStayDiscount);
+        $this->assertTrue($financial->longStayApplied);
+        $this->assertSame(50.0, $financial->serviceFee);
+        $this->assertSame(14.0, $financial->taxRate);
+        $this->assertSame(7.0, $financial->tax);
+        $this->assertSame(4632.0, $financial->total);
+    }
+
+    public function test_booking_financial_parses_new_fee_fields(): void
+    {
+        $financial = BookingFinancial::fromArray([
+            'currency' => 'EGP',
+            'subtotal' => 4500,
+            'long_stay_discount' => 200,
+            'long_stay_applied' => true,
+            'cleaning_fee' => 250,
+            'access' => 100,
+            'service_fee' => 50,
+            'tax_rate' => 14,
+            'tax' => 7,
+            'host_tax_rate' => 14,
+            'tax_from_host' => 630,
+            'total' => 5337,
+        ]);
+
+        $this->assertSame(200.0, $financial->longStayDiscount);
+        $this->assertTrue($financial->longStayApplied);
+        $this->assertSame(50.0, $financial->serviceFee);
+        $this->assertSame(14.0, $financial->taxRate);
+        $this->assertSame(7.0, $financial->tax);
+        $this->assertSame(5337.0, $financial->total);
+    }
+
+    public function test_availability_check_parses_xuru_and_minimum_stay_metadata(): void
+    {
+        $check = AvailabilityCheck::fromArray([
+            'available' => true,
+            'property_uuid' => 'prop-9',
+            'is_xuru_unit' => true,
+            'xuru_status' => true,
+            'xuru_price_applied' => true,
+            'effective_minimum_stay' => 3,
+            'booking_dates' => [
+                'check_in' => '2026-08-12',
+                'check_out' => '2026-08-15',
+                'total_days' => 3,
+            ],
+            'financial' => [
+                'currency' => 'EGP',
+                'subtotal' => 4500,
+                'service_fee' => 50,
+                'tax' => 7,
+                'cleaning_fee' => 0,
+                'access' => 0,
+                'host_tax_rate' => 0,
+                'tax_from_host' => 0,
+                'total' => 4557,
+            ],
+            'property' => [
+                'uuid' => 'prop-9',
+                'title' => 'Unit',
+                'minimum_days' => 2,
+            ],
+            'breakdown' => [],
+        ]);
+
+        $this->assertTrue($check->isXuruUnit);
+        $this->assertTrue($check->xuruStatus);
+        $this->assertTrue($check->xuruPriceApplied);
+        $this->assertSame(3, $check->effectiveMinimumStay);
+        $this->assertSame(50.0, $check->serviceFee);
+        $this->assertSame(7.0, $check->tax);
+        $this->assertSame(2, $check->property?->minimumDays);
     }
 
     public function test_payout_promotes_fields_and_keeps_booking_envelope(): void

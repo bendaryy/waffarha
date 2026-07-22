@@ -47,8 +47,11 @@ use Traversable;
  *    check-in on the same day someone else is checking out. When `false`,
  *    `UnitCalendarDay::$availableForCheckin` is forced to `false` on
  *    existing check-out days.
+ *  - {@see UnitCalendar::$baseMinimumStay} — property default minimum nights.
+ *  - {@see UnitCalendar::$minimumStayOverrides} — date-ranged special
+ *    minimums that raise the stay requirement for overlapping windows.
  *
- * @phpstan-type CalendarPayload array{property_uuid?: string|null, currency?: string|null, base_price?: int|float|string|null, window?: array{start_date?: string|null, end_date?: string|null, days?: int|string|null}|null, linked_dates?: list<array<string, mixed>>, calendar?: list<array<string, mixed>>, blocklist?: list<string>, orphan_gaps?: list<array<string, mixed>>, same_day_booking?: bool|int|string|null}
+ * @phpstan-type CalendarPayload array{property_uuid?: string|null, currency?: string|null, base_price?: int|float|string|null, window?: array{start_date?: string|null, end_date?: string|null, days?: int|string|null}|null, linked_dates?: list<array<string, mixed>>, calendar?: list<array<string, mixed>>, blocklist?: list<string>, orphan_gaps?: list<array<string, mixed>>, same_day_booking?: bool|int|string|null, base_minimum_stay?: int|string|null, minimum_stay_overrides?: list<array<string, mixed>>}
  */
 final readonly class UnitCalendar implements Countable, IteratorAggregate
 {
@@ -57,6 +60,7 @@ final readonly class UnitCalendar implements Countable, IteratorAggregate
      * @param  list<LinkedDateSummary>  $linkedDates
      * @param  list<string>  $blocklist
      * @param  list<OrphanGap>  $orphanGaps
+     * @param  list<MinimumStayOverride>  $minimumStayOverrides
      */
     public function __construct(
         public ?string $propertyUuid,
@@ -70,6 +74,8 @@ final readonly class UnitCalendar implements Countable, IteratorAggregate
         public array $blocklist = [],
         public array $orphanGaps = [],
         public ?bool $sameDayBooking = null,
+        public ?int $baseMinimumStay = null,
+        public array $minimumStayOverrides = [],
     ) {}
 
     /**
@@ -122,10 +128,23 @@ final readonly class UnitCalendar implements Countable, IteratorAggregate
             }
         }
 
+        $overrideRows = isset($data['minimum_stay_overrides']) && is_array($data['minimum_stay_overrides'])
+            ? $data['minimum_stay_overrides']
+            : [];
+
+        $minimumStayOverrides = [];
+        foreach (array_values($overrideRows) as $row) {
+            if (is_array($row)) {
+                /** @var array<string, mixed> $row */
+                $minimumStayOverrides[] = MinimumStayOverride::fromArray($row);
+            }
+        }
+
         $window = isset($data['window']) && is_array($data['window']) ? $data['window'] : [];
         $basePrice = $data['base_price'] ?? null;
         $totalDays = $window['days'] ?? null;
         $sameDayBooking = $data['same_day_booking'] ?? null;
+        $baseMinimumStay = $data['base_minimum_stay'] ?? null;
 
         return new self(
             propertyUuid: isset($data['property_uuid']) && is_scalar($data['property_uuid']) ? (string) $data['property_uuid'] : null,
@@ -139,6 +158,8 @@ final readonly class UnitCalendar implements Countable, IteratorAggregate
             blocklist: $blocklist,
             orphanGaps: $orphanGaps,
             sameDayBooking: $sameDayBooking !== null ? (bool) $sameDayBooking : null,
+            baseMinimumStay: is_numeric($baseMinimumStay) ? (int) $baseMinimumStay : null,
+            minimumStayOverrides: $minimumStayOverrides,
         );
     }
 

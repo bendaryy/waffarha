@@ -223,6 +223,8 @@ Iterable (`foreach`) and countable (`count()`). Returned by `units()->calendar()
 | `blocklist` | `list<string>` | `blocklist` — sorted unique host-blocked dates (Y-m-d), mirrored per-day on `UnitCalendarDay::$isBooked` |
 | `orphanGaps` | `list<OrphanGap>` | `orphan_gaps` — short bookable gaps Maat accepts with a relaxed minimum stay |
 | `sameDayBooking` | `?bool` | `same_day_booking` — host opt-in for new check-in on an existing check-out day |
+| `baseMinimumStay` | `?int` | `base_minimum_stay` — property default minimum nights |
+| `minimumStayOverrides` | `list<MinimumStayOverride>` | `minimum_stay_overrides` — date-ranged special minimums |
 
 Methods: `count()`, `getIterator()`, `toArray(): array` (raw day rows).
 
@@ -237,13 +239,25 @@ A single row inside `UnitCalendar::$days`.
 | `currency` | `?string` | `currency` |
 | `available` | `?bool` | `available` |
 | `isBooked` | `?bool` | `is_booked` — true when the night is taken (existing booking) or host-blocked |
-| `availableForCheckin` | `?bool` | `available_for_checkin` — true when a NEW guest can begin a stay on this day. Opposite of v1's `is_check_in`; forced to `false` on existing check-out days when the host has `same_day_booking = false` |
-| `availableForCheckout` | `?bool` | `available_for_checkout` — true when a NEW guest can end a stay on this day. Opposite of v1's `is_check_out` |
+| `availableForCheckin` | `?bool` | `available_for_checkin` — true when a NEW guest can begin a stay on this day; forced to `false` on existing check-out days when the host has `same_day_booking = false` |
+| `availableForCheckout` | `?bool` | `available_for_checkout` — true when a NEW guest can end a stay on this day |
 | `isWeekend` | `?bool` | `is_weekend` |
 | `reason` | `?string` | `reason` — `null`, `"weekend_rate"`, `"special_rate"`, `"linked_date"`, `"booked"`, or `"blocked"` (priority: `booked` > `blocked` > `linked_date` > `special_rate` > `weekend_rate`). For `"linked_date"` days, scan `UnitCalendar::$linkedDates` and pick the rule whose date range covers this day. |
 | `attributes` | `array<string,mixed>` | full decoded row |
 
 Methods: `get(string $key, mixed $default = null)`, `toArray()`.
+
+### MinimumStayOverride
+
+A single entry inside `UnitCalendar::$minimumStayOverrides`.
+
+| Property | Type | Source key |
+|----------|------|-----------|
+| `startDate` | `?string` | `start_date` |
+| `endDate` | `?string` | `end_date` |
+| `minimumNights` | `?int` | `minimum_nights` |
+| `baseMinimumStay` | `?int` | `base_minimum_stay` |
+| `effectiveMinimumNights` | `?int` | `effective_minimum_nights` |
 
 ### OrphanGap
 
@@ -286,6 +300,10 @@ on the happy path; an unavailable date range surfaces as a `WaffarhaRequestExcep
 |----------|------|-----------|
 | `available` | `bool` | `available` (defaults to `true` when absent) |
 | `propertyUuid` | `?string` | `property_uuid` |
+| `isXuruUnit` | `?bool` | `is_xuru_unit` |
+| `xuruStatus` | `?bool` | `xuru_status` |
+| `xuruPriceApplied` | `?bool` | `xuru_price_applied` |
+| `effectiveMinimumStay` | `?int` | `effective_minimum_stay` |
 | `checkIn` | `?string` | `check_in` |
 | `checkOut` | `?string` | `check_out` |
 | `nights` | `?int` | `nights` |
@@ -300,8 +318,10 @@ For ergonomics + IDE autocomplete the most-used fields from the sub-blocks
 are also mirrored as top-level read-only properties:
 
 - from `$bookingDates`: `checkIn`, `checkOut`, `nights` (= `totalDays`)
-- from `$financial`: `currency`, `subtotal`, `cleaningFee`, `total`,
-  `commissionPercentage`, `commissionAmount`
+- from `$financial`: `currency`, `subtotal`, `longStayDiscount`, `longStayApplied`,
+  `cleaningFee`, `access`, `serviceFee`, `taxRate`, `tax`, `hostTaxRate`,
+  `taxFromHost`, `total`, `commissionPercentage`, `commissionAmount`,
+  `discountPercentage`, `discountAmount`, `subtotalAfterDiscount`
 
 Methods: `count()`, `getIterator()`.
 
@@ -328,17 +348,23 @@ in `$currency` (always `"EGP"` today). Cross-endpoint matrix and formulas:
 | Property | Type | Source key |
 |----------|------|-----------|
 | `currency` | `?string` | `currency` |
+| `basePrice` | `?float` | `base_price` — nightly base in EGP |
 | `subtotal` | `?float` | `subtotal` — sum of nightly prices (EGP, rounded to 2 decimals) |
+| `longStayDiscount` | `?float` | `long_stay_discount` — automatic long-stay reduction |
+| `longStayApplied` | `?bool` | `long_stay_applied` |
 | `discountPercentage` | `?float` | `discount_percentage` — set when request sent `discount_in_percentage` |
 | `discountAmount` | `?float` | `discount_amount` |
 | `subtotalAfterDiscount` | `?float` | `subtotal_after_discount` |
 | `cleaningFee` | `?float` | `cleaning_fee` — one-time per-booking cleaning fee (EGP). `0.0` when the host has not configured one; `null` only on older API responses that omitted the field |
 | `access` | `?float` | `access` — one-time access fee (EGP). `null` on older responses |
+| `serviceFee` | `?float` | `service_fee` — platform service fee |
+| `taxRate` | `?float` | `tax_rate` — tax % on `service_fee` |
+| `tax` | `?float` | `tax` — tax amount on `service_fee` |
 | `hostTaxRate` | `?float` | `host_tax_rate` — host property tax %. `null` on older responses |
 | `taxFromHost` | `?float` | `tax_from_host` — `subtotal × host_tax_rate / 100` (on original subtotal). `null` on older responses |
 | `commissionPercentage` | `?float` | `commission_percentage` — Maat's platform commission rate (e.g. `1.00` = 1%). `null` on older responses |
-| `commissionAmount` | `?float` | `commission_amount` — `subtotal × commission_percentage / 100`, rounded to 2 decimals. **Not** added to `total` — reported separately |
-| `total` | `?float` | `total` — `subtotal_after_discount + cleaning_fee + access + tax_from_host`. Falls back to that sum for older API responses that did not send `total` |
+| `commissionAmount` | `?float` | `commission_amount` — commission on post–long-stay base, rounded to 2 decimals. **Not** added to `total` — reported separately |
+| `total` | `?float` | `total` — `subtotal_after_discount + cleaning_fee + access + tax_from_host + service_fee + tax`. Falls back to that sum for older API responses that did not send `total` |
 
 ### AvailabilityProperty
 
@@ -355,6 +381,7 @@ call `units()->show($uuid)`.
 | `city` | `?string` | `city` |
 | `beds` | `?int` | `beds` |
 | `bathroom` | `?int` | `bathroom` |
+| `minimumDays` | `?int` | `minimum_days` — property default minimum stay |
 
 ### AvailabilityNight
 
@@ -477,14 +504,19 @@ receipt: **[financials.md](financials.md)**.
 |----------|------|-----------|-------|
 | `currency` | `string` | `currency` | Always `"EGP"`. |
 | `subtotal` | `float` | `subtotal` | Sum of every night's `price` from `units()->checkAvailability()`. |
+| `longStayDiscount` | `?float` | `long_stay_discount` | Automatic long-stay reduction when eligible. |
+| `longStayApplied` | `?bool` | `long_stay_applied` | `true` when long-stay applied. |
 | `discountPercentage` | `?float` | `discount_percentage` | Only when a Waffarha % discount applied; otherwise omitted/`null`. |
 | `discountAmount` | `?float` | `discount_amount` | Only when discount applied. |
-| `subtotalAfterDiscount` | `?float` | `subtotal_after_discount` | Only when discount applied. |
+| `subtotalAfterDiscount` | `?float` | `subtotal_after_discount` | After long-stay and/or partner %. |
 | `cleaningFee` | `float` | `cleaning_fee` | One-time cleaning fee in EGP. |
 | `access` | `float` | `access` | One-time access fee in EGP. |
+| `serviceFee` | `float` | `service_fee` | Platform service fee. |
+| `taxRate` | `float` | `tax_rate` | Tax % on `service_fee` (0 when omitted upstream). |
+| `tax` | `float` | `tax` | Tax amount on `service_fee`. |
 | `hostTaxRate` | `float` | `host_tax_rate` | Host property tax %. |
 | `taxFromHost` | `float` | `tax_from_host` | Host tax amount on original subtotal. |
-| `total` | `float` | `total` | `subtotal_after_discount + cleaning_fee + access + tax_from_host` — what the partner is billed. Commission is **not** added. |
+| `total` | `float` | `total` | `subtotal_after_discount + cleaning_fee + access + tax_from_host + service_fee + tax` — what the partner is billed. Commission is **not** added. |
 
 > Maat's commission breakdown (commission per day, total commission, net
 > amount) is computed server-side for host payouts but is never exposed on
@@ -504,8 +536,12 @@ Full `bookdetails` object is in `$attributes`.
 | `checkIn` / `checkOut` | `?string` | `check_in` / `check_out` |
 | `totalDay` | `?int` | `total_day` |
 | `subtotal` | `?float` | `subtotal` |
+| `longStayDiscount` | `?float` | `long_stay_discount` |
+| `longStayApplied` | `?bool` | `long_stay_applied` |
 | `cleaningFee` | `?float` | `cleaning_fee` |
 | `access` | `?float` | `access` |
+| `serviceFee` | `?float` | `service_fee` |
+| `tax` | `?float` | `tax` |
 | `hostTaxRate` | `?float` | `host_tax_rate` |
 | `taxFromHost` | `?float` | `tax_from_host` |
 | `total` | `?float` | `total` |

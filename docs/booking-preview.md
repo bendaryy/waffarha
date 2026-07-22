@@ -78,16 +78,19 @@ Same as create/show:
     "check_out": "2026-08-15",
     "total_days": 3,
     "guests_count": 2,
-    "total_amount": 5480,
+    "total_amount": 5537,
     "currency": "EGP",
     "financial": {
       "currency": "EGP",
       "subtotal": 4500,
       "cleaning_fee": 250,
       "access": 100,
+      "service_fee": 50,
+      "tax_rate": 14,
+      "tax": 7,
       "host_tax_rate": 14,
       "tax_from_host": 630,
-      "total": 5480
+      "total": 5537
     },
     "property": { "uuid": "…", "title": "…", "city": "…" },
     "guest": { "name": "Ahmed Mohamed" },
