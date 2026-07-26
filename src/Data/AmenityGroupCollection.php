@@ -10,16 +10,16 @@ use IteratorAggregate;
 use Traversable;
 
 /**
- * Collection of {@see FacilityGroup} rows from `GET /waffarha/facilities`.
+ * Collection of {@see AmenityGroup} rows from `GET /waffarha/amenities`.
  *
- * @implements IteratorAggregate<int, FacilityGroup>
+ * @implements IteratorAggregate<int, AmenityGroup>
  *
- * @phpstan-type ListPayload array{facilities?: list<array<string, mixed>>}
+ * @phpstan-type ListPayload array{amenities?: list<array<string, mixed>>}
  */
-final readonly class FacilityCollection implements Countable, IteratorAggregate
+final readonly class AmenityGroupCollection implements Countable, IteratorAggregate
 {
     /**
-     * @param  list<FacilityGroup>  $items
+     * @param  list<AmenityGroup>  $items
      */
     public function __construct(
         public array $items,
@@ -30,15 +30,15 @@ final readonly class FacilityCollection implements Countable, IteratorAggregate
      */
     public static function fromArray(array $data): self
     {
-        $rows = isset($data['facilities']) && is_array($data['facilities'])
-            ? $data['facilities']
+        $rows = isset($data['amenities']) && is_array($data['amenities'])
+            ? $data['amenities']
             : [];
 
         $items = [];
         foreach (array_values($rows) as $row) {
             if (is_array($row)) {
                 /** @var array<string, mixed> $row */
-                $items[] = FacilityGroup::fromArray($row);
+                $items[] = AmenityGroup::fromArray($row);
             }
         }
 
@@ -51,7 +51,7 @@ final readonly class FacilityCollection implements Countable, IteratorAggregate
     }
 
     /**
-     * @return Traversable<int, FacilityGroup>
+     * @return Traversable<int, AmenityGroup>
      */
     public function getIterator(): Traversable
     {
@@ -63,6 +63,6 @@ final readonly class FacilityCollection implements Countable, IteratorAggregate
      */
     public function toArray(): array
     {
-        return array_map(static fn (FacilityGroup $group): array => $group->toArray(), $this->items);
+        return array_map(static fn (AmenityGroup $group): array => $group->toArray(), $this->items);
     }
 }

@@ -12,9 +12,9 @@ use Maat\Waffarha\Data\BookingFinancial;
 use Maat\Waffarha\Data\CityFolder;
 use Maat\Waffarha\Data\CityFolderCollection;
 use Maat\Waffarha\Data\CityFolderUnits;
-use Maat\Waffarha\Data\Facility;
-use Maat\Waffarha\Data\FacilityCollection;
-use Maat\Waffarha\Data\FacilityGroup;
+use Maat\Waffarha\Data\Amenity;
+use Maat\Waffarha\Data\AmenityGroup;
+use Maat\Waffarha\Data\AmenityGroupCollection;
 use Maat\Waffarha\Data\OrphanGap;
 use Maat\Waffarha\Data\Payout;
 use Maat\Waffarha\Data\PayoutCollection;
@@ -560,17 +560,17 @@ class DataTest extends BaseTestCase
         $this->assertSame(1, $result->meta?->total);
     }
 
-    public function test_facility_collection_maps_grouped_amenities(): void
+    public function test_amenity_group_collection_maps_grouped_amenities(): void
     {
-        $collection = FacilityCollection::fromArray([
-            'facilities' => [
+        $collection = AmenityGroupCollection::fromArray([
+            'amenities' => [
                 [
                     'category_id' => 1,
                     'category_name' => 'Essentials',
                     'category_name_en' => 'Essentials',
                     'category_name_ar' => null,
                     'category_icon' => 'icon.svg',
-                    'facilities' => [
+                    'amenities' => [
                         [
                             'id' => 3,
                             'title' => 'Wifi',
@@ -585,14 +585,14 @@ class DataTest extends BaseTestCase
 
         $this->assertCount(1, $collection);
         $group = $collection->items[0];
-        $this->assertInstanceOf(FacilityGroup::class, $group);
+        $this->assertInstanceOf(AmenityGroup::class, $group);
         $this->assertSame(1, $group->categoryId);
         $this->assertSame('Essentials', $group->categoryName);
         $this->assertCount(1, $group);
-        $facility = $group->facilities[0];
-        $this->assertInstanceOf(Facility::class, $facility);
-        $this->assertSame(3, $facility->id);
-        $this->assertSame('Wifi', $facility->title);
-        $this->assertSame('wifi.png', $facility->image);
+        $amenity = $group->amenities[0];
+        $this->assertInstanceOf(Amenity::class, $amenity);
+        $this->assertSame(3, $amenity->id);
+        $this->assertSame('Wifi', $amenity->title);
+        $this->assertSame('wifi.png', $amenity->image);
     }
 }

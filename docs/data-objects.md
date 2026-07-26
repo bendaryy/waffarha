@@ -83,17 +83,17 @@ Returned by `cityFolders()->units($id)`. Iterable over the page of units.
 
 Methods: `count()`, `getIterator()`, `toArray()`.
 
-## Returned by `facilities()->list()`
+## Returned by `amenities()->list()`
 
-### FacilityCollection
+### AmenityGroupCollection
 
-Iterable + countable. Each item is a [`FacilityGroup`](#facilitygroup).
+Iterable + countable. Each item is a [`AmenityGroup`](#amenitygroup).
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `items` | `list<FacilityGroup>` | Categories that have ≥ 1 active facility |
+| `items` | `list<AmenityGroup>` | Categories that have ≥ 1 active amenity |
 
-### FacilityGroup
+### AmenityGroup
 
 | Property | Type | Source key |
 |----------|------|-----------|
@@ -102,21 +102,14 @@ Iterable + countable. Each item is a [`FacilityGroup`](#facilitygroup).
 | `categoryNameEn` | `?string` | `category_name_en` |
 | `categoryNameAr` | `?string` | `category_name_ar` |
 | `categoryIcon` | `?string` | `category_icon` |
-| `facilities` | `list<Facility>` | Nested amenity rows |
+| `amenities` | `list<Amenity>` | Nested amenity rows |
 | `attributes` | `array` | full group |
 
-Iterable over nested facilities. Methods: `count()`, `getIterator()`, `toArray()`.
+Iterable over nested amenities. Methods: `count()`, `getIterator()`, `toArray()`.
 
-### Facility
-
-| Property | Type | Source key |
-|----------|------|-----------|
-| `id` | `?int` | `id` — pass to `facilities[]` on city-folder unit search |
-| `title` | `?string` | `title` (localized) |
-| `titleEn` | `?string` | `title_en` |
-| `titleAr` | `?string` | `title_ar` |
-| `image` | `?string` | `image` |
-| `attributes` | `array` | full row |
+Catalogue amenity rows use the same [`Amenity`](#amenity) DTO as unit details
+(plus optional `title_en` from the catalogue payload). Pass each `id` to
+`amenities[]` on city-folder unit search.
 
 ### PaginationMeta
 
@@ -216,7 +209,8 @@ Methods: `get(string $key, mixed $default = null)` — for fields not promoted
 | `id` | `?int` | `id` |
 | `title` | `?string` | `title` |
 | `titleAr` | `?string` | `title_ar` |
-| `image` | `?string` | `img` |
+| `image` | `?string` | `image` or `img` |
+| `titleEn` | `?string` | `title_en` (catalogue only) |
 
 ### SafetyItem
 

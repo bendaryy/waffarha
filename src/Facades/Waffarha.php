@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Maat\Waffarha\Facades;
 
 use Illuminate\Support\Facades\Facade;
+use Maat\Waffarha\Resources\Amenities;
 use Maat\Waffarha\Resources\Bookings;
 use Maat\Waffarha\Resources\CityFolders;
-use Maat\Waffarha\Resources\Facilities;
 use Maat\Waffarha\Resources\Payouts;
 use Maat\Waffarha\Resources\Units;
 use Maat\Waffarha\Resources\WhatsApp;
@@ -18,7 +18,7 @@ use Maat\Waffarha\WaffarhaClient;
  *
  * @method static Units units()
  * @method static CityFolders cityFolders()
- * @method static Facilities facilities()
+ * @method static Amenities amenities()
  * @method static Bookings bookings()
  * @method static Payouts payouts()
  * @method static WhatsApp whatsapp()

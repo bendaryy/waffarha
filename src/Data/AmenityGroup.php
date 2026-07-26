@@ -10,18 +10,18 @@ use IteratorAggregate;
 use Traversable;
 
 /**
- * One category group from `GET /waffarha/facilities`.
+ * One category group from `GET /waffarha/amenities`.
  *
- * Iterable over nested {@see Facility} rows.
+ * Iterable over nested {@see Amenity} rows.
  *
- * @implements IteratorAggregate<int, Facility>
+ * @implements IteratorAggregate<int, Amenity>
  *
- * @phpstan-type FacilityGroupPayload array<string, mixed>
+ * @phpstan-type AmenityGroupPayload array<string, mixed>
  */
-final readonly class FacilityGroup implements Countable, IteratorAggregate
+final readonly class AmenityGroup implements Countable, IteratorAggregate
 {
     /**
-     * @param  list<Facility>  $facilities
+     * @param  list<Amenity>  $amenities
      * @param  array<string, mixed>  $attributes
      */
     public function __construct(
@@ -30,12 +30,12 @@ final readonly class FacilityGroup implements Countable, IteratorAggregate
         public ?string $categoryNameEn,
         public ?string $categoryNameAr,
         public ?string $categoryIcon,
-        public array $facilities,
+        public array $amenities,
         public array $attributes,
     ) {}
 
     /**
-     * @param  FacilityGroupPayload  $data
+     * @param  AmenityGroupPayload  $data
      */
     public static function fromArray(array $data): self
     {
@@ -44,15 +44,15 @@ final readonly class FacilityGroup implements Countable, IteratorAggregate
             : null;
         $categoryId = $data['category_id'] ?? null;
 
-        $rows = isset($data['facilities']) && is_array($data['facilities'])
-            ? $data['facilities']
+        $rows = isset($data['amenities']) && is_array($data['amenities'])
+            ? $data['amenities']
             : [];
 
-        $facilities = [];
+        $amenities = [];
         foreach (array_values($rows) as $row) {
             if (is_array($row)) {
                 /** @var array<string, mixed> $row */
-                $facilities[] = Facility::fromArray($row);
+                $amenities[] = Amenity::fromArray($row);
             }
         }
 
@@ -62,22 +62,22 @@ final readonly class FacilityGroup implements Countable, IteratorAggregate
             categoryNameEn: $str('category_name_en'),
             categoryNameAr: $str('category_name_ar'),
             categoryIcon: $str('category_icon'),
-            facilities: $facilities,
+            amenities: $amenities,
             attributes: $data,
         );
     }
 
     public function count(): int
     {
-        return count($this->facilities);
+        return count($this->amenities);
     }
 
     /**
-     * @return Traversable<int, Facility>
+     * @return Traversable<int, Amenity>
      */
     public function getIterator(): Traversable
     {
-        return new ArrayIterator($this->facilities);
+        return new ArrayIterator($this->amenities);
     }
 
     /**

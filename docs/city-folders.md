@@ -57,7 +57,7 @@ An inactive folder returns HTTP **404**.
 ### Search & filter query params
 
 All filters are optional. Sent as the query string (GET). Arrays use
-`ptype[]` / `facilities[]` (or `ptype[0]`, `facilities[0]`).
+`ptype[]` / `amenities[]` (or `ptype[0]`, `amenities[0]`).
 
 | Key | Type | Description |
 |-----|------|-------------|
@@ -73,7 +73,7 @@ All filters are optional. Sent as the query string (GET). Arrays use
 | `m2_min` | int | Min square meters |
 | `m2_max` | int | Max square meters |
 | `ptype` | int[] | Property type / category ids |
-| `facilities` | int[] | Facility ids — from [`facilities()->list()`](facilities.md) |
+| `amenities` | int[] | Amenity ids — from [`amenities()->list()`](amenities.md) |
 | `latitude` | number | Map center latitude (with `longtitude`) |
 | `longtitude` | number | Map center longitude (API spelling) |
 | `radius` | number | Search radius in km around lat/lng |
@@ -107,7 +107,7 @@ Use this object as the `$query` argument (or as Postman query params):
   "m2_min": 50,
   "m2_max": 200,
   "ptype": [1],
-  "facilities": [3],
+  "amenities": [3],
   "latitude": 30.0444,
   "longtitude": 31.2357,
   "radius": 10,
@@ -132,7 +132,7 @@ $result = Waffarha::cityFolders()->units(12, [
     'm2_min' => 50,
     'm2_max' => 200,
     'ptype' => [1],
-    'facilities' => [3],
+    'amenities' => [3],
     'latitude' => 30.0444,
     'longtitude' => 31.2357,
     'radius' => 10,
